@@ -10,7 +10,7 @@ use shr_kind_mod,        only: r8=>shr_kind_r8
 use spmd_utils,          only: masterproc
 use ppgrid,              only: pcols, pver, pverp, begchunk, endchunk
 use physics_types,       only: physics_state, physics_ptend
-use physics_buffer,      only: physics_buffer_desc, pbuf_get_field, pbuf_old_tim_idx
+use physics_buffer,      only: physics_buffer_desc, pbuf_get_field, pbuf_old_tim_idx, pbuf_set_field
 use camsrfexch,          only: cam_out_t, cam_in_t
 use physconst,           only: cappa, cpair
 
@@ -123,7 +123,6 @@ integer :: irad_always = 0 ! Specifies length of time in timesteps (positive)
                            ! initial or restart run
 logical :: use_rad_dt_cosz  = .false. ! if true, use radiation dt for all cosz calculations
 logical :: spectralflux     = .false. ! calculate fluxes (up and down) per band.
-logical :: use_rad_uniform_angle = .false. ! if true, use the namelist rad_uniform_angle for the coszrs calculation
 
 ! Physics buffer indices
 integer :: qrs_idx      = 0 
@@ -139,13 +138,13 @@ integer :: flns_idx     = 0
 integer :: flnt_idx     = 0
 integer :: cldfsnow_idx = 0 
 integer :: cld_idx      = 0 
+integer :: flntc_idx     = 0 !++WEC
+integer :: fsntoa_idx     = 0 !++WEC
 
 character(len=4) :: diag(0:N_DIAG) =(/'    ','_d1 ','_d2 ','_d3 ','_d4 ','_d5 ','_d6 ','_d7 ','_d8 ','_d9 ','_d10'/)
 
 ! averaging time interval for zenith angle
 real(r8) :: dt_avg = 0._r8
-
-real(r8) :: rad_uniform_angle = -99._r8
 
 ! PIO descriptors (for restarts)
 type(var_desc_t) :: cospcnt_desc
@@ -160,7 +159,7 @@ subroutine radiation_readnl(nlfile)
 
    use namelist_utils,  only: find_group_name
    use units,           only: getunit, freeunit
-   use spmd_utils,      only: mpicom, mstrid=>masterprocid, mpi_integer, mpi_logical, mpi_real8
+   use spmd_utils,      only: mpicom, mstrid=>masterprocid, mpi_integer, mpi_logical
 
    character(len=*), intent(in) :: nlfile  ! filepath for file containing namelist input
 
@@ -170,7 +169,7 @@ subroutine radiation_readnl(nlfile)
    character(len=*), parameter :: sub = 'radiation_readnl'
 
    namelist /radiation_nl/ iradsw, iradlw, irad_always, &
-                           use_rad_dt_cosz, spectralflux, use_rad_uniform_angle, rad_uniform_angle
+                           use_rad_dt_cosz, spectralflux
    !-----------------------------------------------------------------------------
 
    if (masterproc) then
@@ -198,14 +197,6 @@ subroutine radiation_readnl(nlfile)
    if (ierr /= 0) call endrun(sub//": FATAL: mpi_bcast: use_rad_dt_cosz")
    call mpi_bcast(spectralflux, 1, mpi_logical, mstrid, mpicom, ierr)
    if (ierr /= 0) call endrun(sub//": FATAL: mpi_bcast: spectralflux")
-   call mpi_bcast(use_rad_uniform_angle, 1, mpi_logical, mstrid, mpicom, ierr)
-   if (ierr /= 0) call endrun(sub//": FATAL: mpi_bcast: use_rad_uniform_angle")
-   call mpi_bcast(rad_uniform_angle, 1, mpi_real8,  mstrid, mpicom, ierr)
-   if (ierr /= 0) call endrun(sub//": FATAL: mpi_bcast: rad_uniform_angle")
-
-   if (use_rad_uniform_angle .and. rad_uniform_angle == -99._r8) then
-      call endrun(sub // ' ERROR - use_rad_uniform_angle is set to .true, but rad_uniform_angle is not set ')
-   end if
 
    ! Convert iradsw, iradlw and irad_always from hours to timesteps if necessary
    dtime  = get_step_size()
@@ -248,6 +239,9 @@ subroutine radiation_register
 
    call pbuf_add_field('FLNS' , 'global',dtype_r8,(/pcols/), flns_idx) ! Surface net longwave flux
    call pbuf_add_field('FLNT' , 'global',dtype_r8,(/pcols/), flnt_idx) ! Top-of-model net longwave flux
+   
+   call pbuf_add_field('FLNTC', 'global', dtype_r8, (/pcols/),flntc_idx) !++WEC
+   call pbuf_add_field('FSNTOA', 'global', dtype_r8, (/pcols/),fsntoa_idx) !++WEC
 
    ! If the namelist has been configured for preserving the spectral fluxes, then create
    ! physics buffer variables to store the results.
@@ -771,7 +765,7 @@ subroutine radiation_tend( &
    integer  :: troplev(pcols)
    real(r8) :: p_trop(pcols)
 
-   type(rrtmg_state_t) :: r_state ! contains the atm concentrations in layers needed for RRTMG
+   type(rrtmg_state_t), pointer :: r_state ! contains the atm concentrations in layers needed for RRTMG
 
    ! cloud radiative parameters are "in cloud" not "in cell"
    real(r8) :: ice_tau    (nswbands,pcols,pver) ! ice extinction optical depth
@@ -860,15 +854,9 @@ subroutine radiation_tend( &
 
    call shr_orb_decl(calday, eccen, mvelpp, lambm0, obliqr, &
                      delta, eccf)
-   if (use_rad_uniform_angle) then
-      do i = 1, ncol
-         coszrs(i) = shr_orb_cosz(calday, clat(i), clon(i), delta, dt_avg, uniform_angle=rad_uniform_angle)
-      end do
-   else
-      do i = 1, ncol
-         coszrs(i) = shr_orb_cosz(calday, clat(i), clon(i), delta, dt_avg)
-      end do
-   end if
+   do i = 1, ncol
+      coszrs(i) = shr_orb_cosz(calday, clat(i), clon(i), delta, dt_avg)
+   end do
 
    ! Gather night/day column indices.
    Nday = 0
@@ -921,7 +909,7 @@ subroutine radiation_tend( &
    if (dosw .or. dolw) then
 
       ! construct an RRTMG state object
-      r_state = rrtmg_state_create( state, cam_in )
+      r_state => rrtmg_state_create( state, cam_in )
 
       call t_startf('cldoptics')
 
@@ -1269,7 +1257,7 @@ end subroutine radiation_tend
 !===============================================================================
 
 subroutine radiation_output_sw(lchnk, ncol, icall, rd, pbuf, cam_out)
-
+   use physics_buffer,  only: pbuf_set_field
    ! Dump shortwave radiation information to history buffer.
 
    integer ,               intent(in) :: lchnk
@@ -1327,6 +1315,8 @@ subroutine radiation_output_sw(lchnk, ncol, icall, rd, pbuf, cam_out)
 
    call outfld('FSDS'//diag(icall),     fsds,          pcols, lchnk)
    call outfld('FSDSC'//diag(icall),    rd%fsdsc,      pcols, lchnk)
+   
+   call pbuf_set_field(pbuf, fsntoa_idx, rd%fsntoa) !++WEC
 
 end subroutine radiation_output_sw
 
@@ -1355,6 +1345,7 @@ end subroutine radiation_output_cld
 !===============================================================================
 
 subroutine radiation_output_lw(lchnk, ncol, icall, rd, pbuf, cam_out, freqclr, flntclr)
+   use physics_buffer,  only: pbuf_set_field
 
    ! Dump longwave radiation information to history buffer
 
@@ -1366,6 +1357,7 @@ subroutine radiation_output_lw(lchnk, ncol, icall, rd, pbuf, cam_out, freqclr, f
    type(cam_out_t),        intent(in) :: cam_out
    real(r8),               intent(in) :: freqclr(pcols)
    real(r8),               intent(in) :: flntclr(pcols)
+   
 
    ! local variables
    real(r8), pointer :: qrl(:,:)
@@ -1404,6 +1396,8 @@ subroutine radiation_output_lw(lchnk, ncol, icall, rd, pbuf, cam_out, freqclr, f
 
    call outfld('FLDS'//diag(icall),    cam_out%flwds, pcols, lchnk)
    call outfld('FLDSC'//diag(icall),   rd%fldsc,      pcols, lchnk)
+   
+   call pbuf_set_field(pbuf, flntc_idx, rd%flntc) !++WEC
 
 end subroutine radiation_output_lw
 

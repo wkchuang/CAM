@@ -186,18 +186,15 @@ subroutine dyn_readnl(nlfilename)
    real(r8):: fv_del2coef    = 3.e5_r8 ! strength of 2nd order velocity damping
    logical :: fv_high_altitude = .false. ! switch to apply variables appropriate for high-altitude physics
 
-   logical :: fv_high_order_top=.false.! do not degrade calculation to 1st order near the model top
-
-   logical :: fv_am_correction=.false. ! apply correction for angular momentum (AM) in SW eqns
-   logical :: fv_am_geom_crrct=.false. ! apply correction for angular momentum (AM) in geometry
-   logical :: fv_am_fixer     =.false. ! apply global fixer to conserve AM
-   logical :: fv_am_fix_lbl   =.false. ! apply global AM fixer level by level
-   logical :: fv_am_diag      =.false. ! turns on an AM diagnostic calculation written to log file
+   logical :: fv_am_correction = .false. ! apply correction for angular momentum (AM)
+                                            ! conservation in SW eqns
+   logical :: fv_am_fixer    = .false. ! apply global fixer to conserve AM
+   logical :: fv_am_fix_lbl  = .false. ! apply global AM fixer level by level
+   logical :: fv_am_diag     = .false. ! turns on an AM diagnostic calculation written to log file
 
    namelist /dyn_fv_inparm/ fv_nsplit, fv_nspltrac, fv_nspltvrm, fv_iord, fv_jord, &
                             fv_kord, fv_conserve, fv_filtcw, fv_fft_flt,           &
-                            fv_div24del2flag, fv_del2coef, fv_high_order_top,      &
-                            fv_am_correction, fv_am_geom_crrct, &
+                            fv_div24del2flag, fv_del2coef, fv_am_correction,    &
                             fv_am_fixer, fv_am_fix_lbl, fv_am_diag, fv_high_altitude, &
                             fv_print_dpcoup_warn
 
@@ -259,14 +256,8 @@ subroutine dyn_readnl(nlfilename)
    call mpi_bcast(fv_del2coef, 1, mpi_real8, mstrid, mpicom, ierr)
    if (ierr /= 0) call endrun(sub//": FATAL: mpi_bcast: fv_del2coef")
 
-   call mpi_bcast(fv_high_order_top, 1, mpi_logical, mstrid, mpicom, ierr)
-   if (ierr /= 0) call endrun(sub//": FATAL: mpi_bcast: fv_high_order_top")
-
    call mpi_bcast(fv_am_correction, 1, mpi_logical, mstrid, mpicom, ierr)
    if (ierr /= 0) call endrun(sub//": FATAL: mpi_bcast: fv_am_correction")
-
-   call mpi_bcast(fv_am_geom_crrct, 1, mpi_logical, mstrid, mpicom, ierr)
-   if (ierr /= 0) call endrun(sub//": FATAL: mpi_bcast: fv_am_geom_crrct")
 
    ! if fv_am_fix_lbl is true then fv_am_fixer must also be true.
    if (fv_am_fix_lbl .and. .not. fv_am_fixer) then
@@ -338,9 +329,7 @@ subroutine dyn_readnl(nlfilename)
    dyn_state%div24del2flag = fv_div24del2flag
    dyn_state%del2coef      = fv_del2coef
 
-   dyn_state%high_order_top= fv_high_order_top  
    dyn_state%am_correction = fv_am_correction
-   dyn_state%am_geom_crrct = fv_am_geom_crrct
    dyn_state%am_fixer      = fv_am_fixer
    dyn_state%am_fix_lbl    = fv_am_fix_lbl
    dyn_state%am_diag       = fv_am_diag
@@ -363,8 +352,7 @@ subroutine dyn_readnl(nlfilename)
       write(iulog,*)'  FFT filter (fv_fft_flt)                           = ', fv_fft_flt
       write(iulog,*)'  Divergence/velocity damping (fv_div24del2flag)    = ', fv_div24del2flag
       write(iulog,*)'  Coef for 2nd order velocity damping (fv_del2coef) = ', fv_del2coef
-      write(iulog,*)'  High-order top                                     = ', fv_high_order_top
-      write(iulog,*)'  Geometry & pressure corr. for AM (fv_am_geom_crrct) = ', fv_am_geom_crrct
+      write(iulog,*)'  '
       write(iulog,*)'  Angular momentum (AM) correction (fv_am_correction) = ', fv_am_correction
       write(iulog,*)'  Apply AM fixer (fv_am_fixer)                        = ', fv_am_fixer
       write(iulog,*)'  Level by level AM fixer (fv_am_fix_lbl)             = ', fv_am_fix_lbl
@@ -1048,7 +1036,6 @@ subroutine dyn_run(ptop, ndt, te0, dyn_state, dyn_in, dyn_out, rc)
 
    ! angular momentum (AM) conservation
    logical  :: am_correction         ! apply AM correction?
-   logical  :: am_geom_crrct         ! apply AM geom. corr?
    logical  :: am_fixer              ! apply AM fixer?
    logical  :: am_fix_lbl            ! apply fixer separately on each shallow-water layer?
    logical  :: am_fix_taper=.false.  ! def. no tapering; modified if global fixer applied or high_order_top=.false.
@@ -1085,10 +1072,10 @@ subroutine dyn_run(ptop, ndt, te0, dyn_state, dyn_in, dyn_out, rc)
    real(r8), allocatable :: uc_s(:,:,:),vc_s(:,:,:)  ! workspace (accumulated uc,vc)
    real(r8), allocatable :: uc_i(:,:,:),vc_i(:,:,:)  ! workspace (transposed uc_s,vc_s)
 
-
+   integer, save :: step_count = 1
    ! NOTE -- model behaviour with high_order_top=true is still under validation and may require
    !         some other form of enhanced damping in the top layer
-   logical :: high_order_top
+   logical, parameter :: high_order_top=.false.
 
    !--------------------------------------------------------------------------------------
    kmtp=dyn_state%grid%km/8
@@ -1123,6 +1110,7 @@ subroutine dyn_run(ptop, ndt, te0, dyn_state, dyn_in, dyn_out, rc)
    ns   = dyn_state%nsplit   ! large split (will be subdivided later)
    n2   = dyn_state%nspltrac ! tracer split(will be subdivided later)
    nv   = dyn_state%nspltvrm ! vertical re-mapping split
+
    icd  = dyn_state%icd
    jcd  = dyn_state%jcd
    iord = dyn_state%iord
@@ -1134,9 +1122,7 @@ subroutine dyn_run(ptop, ndt, te0, dyn_state, dyn_in, dyn_out, rc)
    high_alt      = grid%high_alt
 
    consv      = dyn_state%consv
-   high_order_top= dyn_state%high_order_top
    am_correction = dyn_state%am_correction
-   am_geom_crrct = dyn_state%am_geom_crrct
    am_fixer   = dyn_state%am_fixer
    am_fix_lbl = dyn_state%am_fix_lbl
    am_diag    = dyn_state%am_diag
@@ -1437,7 +1423,7 @@ subroutine dyn_run(ptop, ndt, te0, dyn_state, dyn_in, dyn_out, rc)
    nsplit = (ns+n2*nv-1) / (n2*nv)
    dt     = bdt / real(nsplit*n2*nv,r8)
 
-   if (print_subcycling) then
+   if (print_subcycling .or. (mod(step_count,48)==0)) then
       print_subcycling = .false.
       if (masterproc) then
          write(iulog,*) 'FV subcycling - nv, n2, nsplit, dt = ', nv, n2, nsplit, dt
@@ -1873,8 +1859,8 @@ subroutine dyn_run(ptop, ndt, te0, dyn_state, dyn_in, dyn_out, rc)
                             naux, ncx, ncy, nmfx, nmfy, iremotea,            &
                             cxtaga, cytaga, mfxtaga, mfytaga, cdcreqs(1,1),  &
                             cdcreqs(1,2), cdcreqs(1,3), cdcreqs(1,4),        &
-                            kmtp, am_correction, am_geom_crrct, am_fix_out,  &
-                            dod, don, high_order_top)
+                            kmtp, &
+                            am_correction, am_fix_out, dod, don ,high_order_top)
 
                ctreqs(2,:) = cdcreqs(:,1)
                ctreqs(3,:) = cdcreqs(:,2)
@@ -2638,7 +2624,7 @@ subroutine dyn_run(ptop, ndt, te0, dyn_state, dyn_in, dyn_out, rc)
                         phisxy,   cp3v,    cap3v,  kord,   pelnxy,          &
                         te0,      tempxy,  dp0xy,  mfxxy,  mfyxy,           &
                         uc_i,     vc_i,  du_fix_s, du_fix_i,                &
-                        am_geom_crrct, (am_fixer.or.am_diag) )
+                        am_correction, (am_fixer.or.am_diag) )
 
             if (am_diag) then
 !$omp parallel do private(i,j,k)
@@ -2698,6 +2684,13 @@ subroutine dyn_run(ptop, ndt, te0, dyn_state, dyn_in, dyn_out, rc)
          enddo
       enddo
    end if
+   ! This will decrease large nsplit values to defaults over the first few days.
+   if(mod(step_count,48)==0) then
+      dyn_state%nsplit = max(16, dyn_state%nsplit/2)
+      dyn_state%nspltrac = max(4, dyn_state%nspltrac/2)
+      dyn_state%nspltvrm = max(4, dyn_state%nspltvrm/2)
+   endif
+   step_count = step_count+1
 
    call t_startf ('dyn_run_dealloc')
 
