@@ -99,7 +99,7 @@ module physpkg
   integer ::  snowini_pcw_idx
   integer ::  snowini_dp_idx
    integer ::  snowini_sh_idx
- 
+
   real(r8), pointer, dimension(:) :: precini_str
   real(r8), pointer, dimension(:) :: precini_sed
   real(r8), pointer, dimension(:) :: precini_pcw
@@ -226,7 +226,7 @@ contains
     call pbuf_add_field('CLDICEINI', 'physpkg', dtype_r8, (/pcols,pver/), cldiceini_idx)
 
 !JDB
-    ! Fields needed for stoch phys 
+    ! Fields needed for stoch phys
     call pbuf_add_field('TINI',     'physpkg', dtype_r8, (/pcols,pver/), tini_idx)
     call pbuf_add_field('UINI',     'physpkg', dtype_r8, (/pcols,pver/), uini_idx)
     call pbuf_add_field('VINI',     'physpkg', dtype_r8, (/pcols,pver/), vini_idx)
@@ -236,7 +236,7 @@ contains
 !In file "/glade/work/hannahc/cesm1_1_2_LENS_n16/runs/amip05_F1850LENS_f09_f09_spptend_chey/SourceMods/src.cam/physpkg.F90":
 !------------------------------
 
-    !HMC want to find out if we have already registered and populated 
+    !HMC want to find out if we have already registered and populated
     precini_str_idx = pbuf_get_index('PRECINI_STR',idxerr)
     if (idxerr.lt.0) then
        precini_str_idx = 0
@@ -252,7 +252,7 @@ contains
        !call pbuf_get_field(pbuf, precini_sed_idx, precini_sed)
        !precini_sed = 0.0_r8
     endif
-    
+
     precini_pcw_idx = pbuf_get_index('PRECINI_PCW',idxerr)
     if (idxerr.lt.0) then
        precini_pcw_idx = 0
@@ -260,7 +260,7 @@ contains
        !call pbuf_get_field(pbuf, precini_pcw_idx, precini_pcw)
        !precini_pcw = 0.0_r8
     endif
-    
+
     precini_dp_idx = pbuf_get_index('PRECINI_DP',idxerr)
     if (idxerr.lt.0) then
        precini_dp_idx = 0
@@ -268,7 +268,7 @@ contains
        !call pbuf_get_field(pbuf, precini_dp_idx, precini_dp)
        !precini_dp = 0.0_r8
     endif
-    
+
     precini_sh_idx = pbuf_get_index('PRECINI_SH',idxerr)
     if (idxerr.lt.0) then
        precini_sh_idx = 0
@@ -276,7 +276,7 @@ contains
        !call pbuf_get_field(pbuf, precini_sh_idx, precini_sh)
        !precini_sh = 0.0_r8
     endif
-    
+
     snowini_str_idx = pbuf_get_index('SNOWINI_STR',idxerr)
     if (idxerr.lt.0) then
        snowini_str_idx = 0
@@ -317,8 +317,8 @@ contains
        !snowini_sh = 0.0_r8
     endif
     !end HMC
-! end JDB 
-   endif 
+! end JDB
+   endif
 !JDB
 
     ! check energy package
@@ -382,10 +382,10 @@ contains
 
        ! co2 constituents
        call co2_register()
-!JDB 
+!JDB
        ! Register stochastic perturbations
        call cam_stoch_register()
-!JDB 
+!JDB
 
        ! register data model ozone with pbuf
        if (cam3_ozone_data_on) then
@@ -1417,17 +1417,17 @@ contains
     use nudging,            only: Nudge_Model,Nudge_ON,nudging_timestep_tend
     use stochaiing,         only: Stochai_Model,Stochai_ON,stochaiing_timestep_tend !++WEC
     use damlining,          only: regress_daml_timestep_tend,DAMLin_Model,DAMLin_Model_Regress,damlining_timestep_tend !++WEC
-! JDB 
+! JDB
     use cam_stoch,       only: cam_stoch_sppt, stoch_sppt_idx, ptend_update_sppt
     use cam_stoch,       only: cam_stoch_skebs
     use cam_history,     only: outfld
-    real(r8), pointer                 :: rstoch_sppt(:)  ! (pcols) 
+    real(r8), pointer                 :: rstoch_sppt(:)  ! (pcols)
     real(r8), pointer, dimension(:,:) :: tend_rad  ! (pcols,pver)
     real(r8), pointer, dimension(:,:) :: uini
     real(r8), pointer, dimension(:,:) :: vini
     real(r8), pointer, dimension(:,:) :: tini
     real(r8)                          :: tend_q_dt(pcols,pver) ! backed out q tendency
-! JDB 
+! JDB
 
 
     !
@@ -1484,7 +1484,7 @@ contains
     real(r8), pointer, dimension(:,:) :: dtcore
     real(r8), pointer, dimension(:,:) :: ast     ! relative humidity cloud fraction
 
-!JDB 
+!JDB
     real(r8), pointer, dimension(:) :: precini_str
     real(r8), pointer, dimension(:) :: precini_sed
     real(r8), pointer, dimension(:) :: precini_pcw
@@ -1495,7 +1495,7 @@ contains
     real(r8), pointer, dimension(:) :: snowini_pcw
     real(r8), pointer, dimension(:) :: snowini_dp
     real(r8), pointer, dimension(:) :: snowini_sh
-!end JDB 
+!end JDB
 
     !-----------------------------------------------------------------------
     lchnk = state%lchnk
@@ -1726,36 +1726,36 @@ contains
     !++WEC
     ! Update Stochain values, if needed
     !----------------------------------
-    
+
     if((Stochai_Model).and.(Stochai_ON)) then
       call stochaiing_timestep_tend(state,ptend)
       call physics_update(state,ptend,ztodt,tend)
       call check_energy_chng(state, tend, "stochaiing", nstep, ztodt, zero, zero, zero, zero)
     endif
-    
-    
+
+
     !if((DAMLin_Model).and.(DAMLin_Model))then
     !    if (masterproc) write(iulog,*) 'Inner Ear Philz::::'
     !    call regress_daml_timestep_tend(state,ptend,pbuf)
     !    call damlining_timestep_tend(state,ptend)
     !    call physics_update(state,ptend,ztodt,tend)
     !    call check_energy_chng(state, tend, "damlining", nstep, ztodt, zero, zero, zero, zero)
-    !endif 
-    
+    !endif
+
     !--WEC
 
 !JDB
 !===================================================
-! Stochastic parameterization SKEBS 
+! Stochastic parameterization SKEBS
 !===================================================
 !    if (cam_stoch_skebs==1) then
 !       call t_startf('stochastic_skebs')
-!       call ptend_update_skebs(pbuf,state,ncol,lchnk,rstoch_skebs) ! needs to be called before 1st physics_update 
+!       call ptend_update_skebs(pbuf,state,ncol,lchnk,rstoch_skebs) ! needs to be called before 1st physics_update
 !       call t_stopf('stochastic_skebs')
-!    endif 
+!    endif
 
 !===================================================
-! Stochastic parameterization SPPT 
+! Stochastic parameterization SPPT
 !===================================================
        call t_startf('stochastic_sppt')
 
@@ -1805,7 +1805,7 @@ contains
 
 !In file "amip05_F1850LENS_f09_f09_spptend_chey/SourceMods/src.cam/physpkg.F90":
 !------------------------------
- 
+
         !SPPT precip perturbations
 !        !calculate perturbed precipitation and save for use in physbc at next timestep
         call pbuf_get_field(pbuf, precini_str_idx, precini_str)
@@ -1834,10 +1834,10 @@ contains
            snowini_sh(i)  = rstoch_sppt(i)*snowini_sh(i)
         end do
     endif
- 
+
         !WRITE(*,'('' HMCHMC physac SPPT nstep ='',I5.4)') nstep
         !WRITE(*,'('' HMCHMC physac SPPT dprec ='',E12.5)') precini_dp(1)
- 
+
 
 !===================================================
 ! JDB
@@ -2003,6 +2003,8 @@ contains
 !JDB
     use damlining,          only: regress_daml_timestep_tend,regress_diurnal_daml_timestep_tend,&
                                   DAMLin_Model,DAMLin_Model_Regress,damlining_timestep_tend,damlining_diurnal_timestep_tend !++WEC
+
+    use CB24cnn,        only: CB24cnn_init
     ! Arguments
 
     real(r8), intent(in) :: ztodt                          ! 2 delta t (model time increment)
@@ -2079,7 +2081,7 @@ contains
      real(r8), pointer, dimension(:) :: snowini_pcw !HMC - snow saved for SPPT next t-step
      real(r8), pointer, dimension(:) :: snowini_dp  !HMC - snow saved for SPPT next t-step
      real(r8), pointer, dimension(:) :: snowini_sh  !HMC - snow saved for SPPT next t-step
- 
+
      real(r8)  :: preclst_str(pcols) !HMC - prec saved from SPPT last t-step
      real(r8)  :: preclst_sed(pcols) !HMC - prec saved from SPPT last t-step
      real(r8)  :: preclst_pcw(pcols) !HMC - prec saved from SPPT last t-step
@@ -2090,7 +2092,7 @@ contains
      real(r8)  :: snowlst_pcw(pcols) !HMC - snow saved from SPPT last t-step
      real(r8)  :: snowlst_dp(pcols)  !HMC - snow saved from SPPT last t-step
      real(r8)  :: snowlst_sh(pcols)  !HMC - snow saved from SPPT last t-step
- 
+
 ! JDB
 
     real(r8), pointer, dimension(:,:,:) :: fracis  ! fraction of transported species that are insoluble
@@ -2294,7 +2296,7 @@ contains
         call pbuf_get_field(pbuf, snowini_dp_idx , snowini_dp)
         call pbuf_get_field(pbuf, snowini_sh_idx , snowini_sh)
      endif
- 
+
      !move precini from last time step into preclst
      preclst_str(:ncol) = precini_str(:ncol)
      preclst_sed(:ncol) = precini_sed(:ncol)
@@ -2307,7 +2309,7 @@ contains
      snowlst_dp(:ncol)  = snowini_dp(:ncol)
      snowlst_sh(:ncol)  = snowini_sh(:ncol)
      !--end HMC
-    endif 
+    endif
 
 !JDB
     !
@@ -2673,7 +2675,7 @@ contains
      snowini_pcw(:ncol) = snow_pcw(:ncol)
      snowini_dp(:ncol)  = snow_dp(:ncol)
      snowini_sh(:ncol)  = snow_sh(:ncol)
- 
+
      prec_str(:ncol) = prec_str(:ncol) + preclst_str(:ncol)
      prec_sed(:ncol) = prec_sed(:ncol) + preclst_sed(:ncol)
      prec_pcw(:ncol) = prec_pcw(:ncol) + preclst_pcw(:ncol)
@@ -2684,10 +2686,10 @@ contains
      snow_pcw(:ncol) = snow_pcw(:ncol) + snowlst_pcw(:ncol)
      snow_dp(:ncol)  = snow_dp(:ncol)  + snowlst_dp(:ncol)
      snow_sh(:ncol)  = snow_sh(:ncol)  + snowlst_sh(:ncol)
- 
+
      !WRITE(*,'('' HMC physbc SPPT nstep ='',I5.4)') nstep
      !WRITE(*,'('' HMC physbc SPPT nstep; dprec; Bprec; Aprec ='',I5.4,'' '',E12.5,'' '',E12.5,'' '',E12.5)') nstep, MAXVAL(preclst_dp), MAXVAL(precini_dp), MAXVAL(prec_dp)
- 
+
      !HMC do not allow prec to be negative
      do idx = 1,ncol
          prec_str(idx) = max(prec_str(idx),0.0)
@@ -2702,21 +2704,21 @@ contains
          snow_sh(idx)  = max(snow_sh(idx),0.0)
      end do
      !WRITE(*,'('' HMC physbc SPPT A+prec='',I5.4,'' '',E12.5)') nstep, prec_dp(1)
-     endif 
+     endif
 
 
     !===================================================
     ! Moist physical parameteriztions complete:
     ! send dynamical variables, and derived variables to history file
     !===================================================
-    
+
     if((DAMLin_Model).and.(DAMLin_Model))then
         !if (masterproc) write(iulog,*) 'Philz::::'
         call regress_diurnal_daml_timestep_tend(state,ptend,pbuf,cam_in,cam_out)
         call damlining_diurnal_timestep_tend(state,ptend)
         call physics_update(state,ptend,ztodt,tend)
         call check_energy_chng(state, tend, "damlining_1", nstep, ztodt, zero, zero, zero, zero)
-        
+
         !if (masterproc) write(iulog,*) 'Philz2 ::::'
         if((DAMLin_Model_Regress).and.(DAMLin_Model_Regress))then
             call regress_daml_timestep_tend(state,ptend,pbuf,cam_in,cam_out)
@@ -2724,7 +2726,9 @@ contains
             call physics_update(state,ptend,ztodt,tend)
             call check_energy_chng(state, tend, "damlining_2", nstep, ztodt, zero, zero, zero, zero)
         endif
-    endif 
+    endif
+
+    call CB24cnn_init() !WEC please turn off later... 
 
     call t_startf('bc_history_write')
     call diag_phys_writeout(state, pbuf)
@@ -2907,7 +2911,7 @@ subroutine phys_timestep_init(phys_state, cam_in, cam_out, pbuf2d)
   !if(DAMLin_Model) call damlining_timestep_init(phys_state)
 
 !JDB
-  ! Call stochastic pattern generator 
+  ! Call stochastic pattern generator
   !----------------------------------
   ! The pattern update has to be done at the beginning of the timestep before the fields are chunked
   if (cam_stoch_sppt.eq.1) then

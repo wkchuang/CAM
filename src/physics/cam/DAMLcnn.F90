@@ -60,7 +60,7 @@ module CB24cnn
   !public:: damlining_timestep_init
   !public:: damlining_timestep_tend
   !public:: damlining_diurnal_timestep_tend
-  
+
   !private::DAMLining_readin_weights_all
   !private::DAMLining_readin_weights
   !private::DAMLining_readin_weights_diurnal
@@ -81,7 +81,7 @@ contains
     !===============================================================
 
     use forpy_mod
-    
+
     use ppgrid        ,only: pver,pcols,begchunk,endchunk
     use error_messages,only: alloc_err
     use dycore        ,only: dycore_is
@@ -106,7 +106,7 @@ contains
     ierror = my_list%append("Hello world!")
     ierror = my_list%append(3.14d0)
     ierror = print_py(my_list)
-    
+
 !    write(iulog,*)my_list
 
     call my_list%destroy
@@ -120,15 +120,3 @@ contains
   end subroutine ! CB24cnn_init
 
 end module CB24cnn
-
-
-
-
-
-
-
-
-
-
-
-  
