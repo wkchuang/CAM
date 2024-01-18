@@ -112,7 +112,8 @@ contains
 
     write(iulog,*)'CB24cnn_init starting'
 
-    ierror = forpy_initialize(paths)
+    ierror = forpy_initialize()
+    ierror = get_sys_path(paths)
     ierror = paths%append(".")
 
     ierror = import_py(pymodule,"DAMLcnn")
@@ -126,15 +127,13 @@ contains
     ierror = kwargs%setitem("message", "Hello world!")
 
     ierror = call_py(return_value,pymodule,"DAMLcnn_run", args, kwargs)
-
-    ierror = get_sys_path()
     ierror = cast(return_string, return_value)
 
     write(iulog,*)'CB24cnn_init ending',return_string
 
     call args%destroy
     call kwargs%destroy
-    call mymodule%destroy
+    call pymodule%destroy
     call return_value%destroy
     call paths%destroy
     call forpy_finalize
