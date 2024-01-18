@@ -114,7 +114,7 @@ contains
 
     ierror = forpy_initialize()
     ierror = get_sys_path(paths)
-    ierror = paths%append(".")
+    ierror = paths%append("/glade/derecho/scratch/wchapman/f.e21.DAcompset.sppt_stochai_cnn_exp0052/run/")
 
     ierror = import_py(pymodule,"DAMLcnn")
 
@@ -125,6 +125,8 @@ contains
 
     ierror = dict_create(kwargs)
     ierror = kwargs%setitem("message", "Hello world!")
+
+    write(iulog,*)'CB24cnn_init starting 2'
 
     ierror = call_py(return_value,pymodule,"DAMLcnn_run", args, kwargs)
     ierror = cast(return_string, return_value)
