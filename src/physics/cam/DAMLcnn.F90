@@ -114,7 +114,7 @@ contains
 
     ierror = forpy_initialize()
     ierror = get_sys_path(paths)
-    ierror = paths%append("/glade/derecho/scratch/wchapman/f.e21.DAcompset.sppt_stochai_cnn_exp0052/run/")
+    ierror = paths%append(".")
 
     ierror = import_py(pymodule,"DAMLcnn")
 
