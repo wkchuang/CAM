@@ -46,6 +46,13 @@ module CB24cnn
   use mpishorthand
 #endif
 
+  !use MOM_coms,                  only : PE_here,num_PEs
+  use forpy_mod,                 only : module_py,list,ndarray,object,tuple
+  use forpy_mod,                 only : err_print
+  use forpy_mod,                 only : forpy_initialize,get_sys_path,import_py,print_py
+  use forpy_mod,                 only : ndarray_create,tuple_create,call_py,cast
+  use forpy_mod,                 only : forpy_finalize
+
 ! Set all Global values and routines to private by default
   ! and then explicitly set their exposure.
   !----------------------------------------------------------
@@ -94,22 +101,42 @@ contains
     implicit none
 
     integer :: ierror
+    type(tuple) :: args
+    type(dict) :: kwargs
     type(list) :: my_list
+    type(list) :: paths
+    type(module_py) :: pymodule
+    type(object) :: return_value
+    character(len=:), allocatable :: return_string
 
 
     write(iulog,*)'CB24cnn_init starting'
 
-    ierror = forpy_initialize()
-    ierror = list_create(my_list)
+    ierror = forpy_initialize(paths)
+    ierror = paths%append(".")
 
-    ierror = my_list%append(19)
-    ierror = my_list%append("Hello world!")
-    ierror = my_list%append(3.14d0)
-    ierror = print_py(my_list)
+    ierror = import_py(pymodule,"DAMLcnn")
 
-!    write(iulog,*)my_list
+    ierror = tuple_create(args, 3)
+    ierror = args%setitem(0, 12)
+    ierror = args%setitem(1, "Hi")
+    ierror = args%setitem(2, .true.)
 
-    call my_list%destroy
+    ierror = dict_create(kwargs)
+    ierror = kwargs%setitem("message", "Hello world!")
+
+    ierror = call_py(return_value,pymodule,"DAMLcnn_run", args, kwargs)
+
+    ierror = get_sys_path()
+    ierror = cast(return_string, return_value)
+
+    write(iulog,*)'CB24cnn_init ending',return_string
+
+    call args%destroy
+    call kwargs%destroy
+    call mymodule%destroy
+    call return_value%destroy
+    call paths%destroy
     call forpy_finalize
 
 
