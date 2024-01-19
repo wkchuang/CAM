@@ -1,4 +1,8 @@
 import sys
+sys.path.insert(0,"/glade/work/wchapman/miniconda3.2/envs/cesmML/lib/python3.11/")
+sys.path.insert(1,"/glade/work/wchapman/miniconda3.2/envs/cesmML/lib/python3.11/site-packages")
+import numpy as np
+
 
 def DAMLcnn_run(*args,**kwargs):
     class CNN():

@@ -2728,7 +2728,7 @@ contains
         endif
     endif
 
-    call CB24cnn_init() !WEC please turn off later... 
+    if (masterproc) call CB24cnn_init() !WEC please turn off later... 
 
     call t_startf('bc_history_write')
     call diag_phys_writeout(state, pbuf)

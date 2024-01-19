@@ -110,7 +110,8 @@ contains
     character(len=:), allocatable :: return_string
 
 
-    write(iulog,*)'CB24cnn_init starting'
+
+    if (masterproc) write(iulog,*) 'CB24cnn_init starting'
 
     ierror = forpy_initialize()
     ierror = get_sys_path(paths)
@@ -126,12 +127,10 @@ contains
     ierror = dict_create(kwargs)
     ierror = kwargs%setitem("message", "Hello world!")
 
-    write(iulog,*)'CB24cnn_init starting 2'
-
     ierror = call_py(return_value,pymodule,"DAMLcnn_run", args, kwargs)
     ierror = cast(return_string, return_value)
 
-    write(iulog,*)'CB24cnn_init ending',return_string
+    if (masterproc) write(iulog,*)'CB24cnn_init ending',return_string
 
     call args%destroy
     call kwargs%destroy
