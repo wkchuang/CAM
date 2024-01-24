@@ -884,6 +884,7 @@ contains
     !++WEC
     use stochaiing,         only: Stochai_Model, stochaiing_init
     use damlining,          only: DAMLin_Model,damlining_init
+    use CB24cnn,            only: CB24cnn_init
     !--WEC
     ! Input/output arguments
     type(physics_state), pointer       :: phys_state(:)
@@ -1081,7 +1082,7 @@ contains
     call cam_stoch_sppt_init(pbuf2d)
    !call cam_stoch_skebs_init(pbuf2d)
 !JDB
-
+    call CB24cnn_init
   end subroutine phys_init
 
   !
@@ -1337,6 +1338,7 @@ contains
     use chemistry, only : chem_final
     use carma_intr, only : carma_final
     use wv_saturation, only : wv_sat_final
+    use CB24cnn, only : CB24cnn_finalize
     !-----------------------------------------------------------------------
     !
     ! Purpose:
@@ -1357,7 +1359,7 @@ contains
     call chem_final
     call carma_final
     call wv_sat_final
-
+    call CB24cnn_finalize
   end subroutine phys_final
 
 
@@ -2004,7 +2006,8 @@ contains
     use damlining,          only: regress_daml_timestep_tend,regress_diurnal_daml_timestep_tend,&
                                   DAMLin_Model,DAMLin_Model_Regress,damlining_timestep_tend,damlining_diurnal_timestep_tend !++WEC
 
-    use CB24cnn,        only: CB24cnn_init
+    use CB24cnn,        only: CB24cnn_run
+    use ieee_exceptions, only: ieee_get_halting_mode, ieee_set_halting_mode, ieee_all, ieee_set_flag
     ! Arguments
 
     real(r8), intent(in) :: ztodt                          ! 2 delta t (model time increment)
@@ -2048,6 +2051,7 @@ contains
 ! JDB
     integer :: idx,k
 ! end JDB
+    logical          :: halting_mode(5)
     integer :: ixcldice, ixcldliq              ! constituent indices for cloud liquid and ice water.
     ! for macro/micro co-substepping
     integer :: macmic_it                       ! iteration variables
@@ -2728,8 +2732,10 @@ contains
         endif
     endif
 
-    if (masterproc) call CB24cnn_init() !WEC please turn off later... 
 
+    if (masterproc) call CB24cnn_run() !WEC please turn off later... 
+
+    
     call t_startf('bc_history_write')
     call diag_phys_writeout(state, pbuf)
     !call diag_phys_writeout(state, cam_out%psl)
@@ -2795,6 +2801,8 @@ contains
     call t_startf('diag_export')
     call diag_export(cam_out)
     call t_stopf('diag_export')
+
+    if (masterproc) write(iulog,*)'Taco Taco Taco'
 
   end subroutine tphysbc
 
