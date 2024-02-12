@@ -1098,11 +1098,12 @@ contains
     !-----------------------------------------------------------------------
     use time_manager,   only: get_nstep
     use cam_diagnostics,only: diag_allocate, diag_physvar_ic
-    use check_energy,   only: check_energy_gmean
+    use check_energy,   only: check_energy_gmean, check_energy_chng
     use phys_control,   only: phys_getopts
     use spcam_drivers,  only: tphysbc_spcam
     use spmd_utils,     only: mpicom
     use physics_buffer, only: physics_buffer_desc, pbuf_get_chunk, pbuf_allocate
+    use cb24cnn,        only: cb24cnn_timestep_tend,cb24cnn_set_tend
 #if (defined BFB_CAM_SCAM_IOP )
     use cam_history,    only: outfld
 #endif
@@ -1119,6 +1120,8 @@ contains
     !
     type(physics_state), intent(inout), dimension(begchunk:endchunk) :: phys_state
     type(physics_tend ), intent(inout), dimension(begchunk:endchunk) :: phys_tend
+    
+    
 
     type(physics_buffer_desc), pointer, dimension(:,:) :: pbuf2d
     type(cam_in_t),                     dimension(begchunk:endchunk) :: cam_in
@@ -1131,6 +1134,8 @@ contains
     integer :: ncol                              ! number of columns
     integer :: nstep                             ! current timestep number
     logical :: use_spcam
+    type(physics_ptend)     :: ptend               ! WEC
+    real(r8) :: zero(pcols)                        ! array of zeros
     type(physics_buffer_desc), pointer :: phys_buffer_chunk(:)
 
     call t_startf ('physpkg_st1')
@@ -1213,6 +1218,16 @@ contains
 
     end do
 
+    !++WEC Call here so python is only ever called once per timestep 
+    if (masterproc) write(iulog,*)'nintendo past cb24cnn_timestep_init '
+    call cb24cnn_timestep_tend() 
+    do c=begchunk, endchunk
+        call cb24cnn_set_tend(phys_state(c),ptend)
+        call physics_update(phys_state(c),ptend,ztodt,phys_tend(c)) 
+        call check_energy_chng(phys_state(c),phys_tend(c), "cb24cnn", nstep, ztodt, zero, zero, zero, zero)
+    end do
+    !--WEC
+    
     call t_adj_detailf(-1)
     call t_stopf ('bc_physics')
 
@@ -2732,9 +2747,11 @@ contains
         endif
     endif
 
-    !call cb24cnn_timestep_init(state,ptend,pbuf,cam_in,cam_out)
-    if (masterproc) call cb24cnn_timestep_tend(state,ptend,pbuf,cam_in,cam_out) !WEC please turn off later...
-
+    call t_startf('cb24cnn_init')
+    call cb24cnn_timestep_init(state,ptend,pbuf,cam_in,cam_out)
+    !if (masterproc) write(iulog,*)'nintendo past cb24cnn_timestep_init '
+    !call cb24cnn_timestep_tend(state,ptend,pbuf,cam_in,cam_out) !WEC please turn off later...
+    call t_stopf('cb24cnn_init')
 
     call t_startf('bc_history_write')
     call diag_phys_writeout(state, pbuf)
