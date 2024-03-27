@@ -611,6 +611,7 @@ contains
         ierror = cast(out_arr, return_value)
         if (ierror/=0) then; call err_print; endif
         ierror = out_arr%get_data(out_for, order='C')
+        !ierror = out_arr%get_data(out_for)
         if (ierror/=0) then; call err_print; endif
     
         write(iulog,*) 'outfld yahoo:',size(out_for, 1),size(out_for, 2),size(out_for, 3),size(out_for, 4)
@@ -641,7 +642,7 @@ contains
     do ilat=1,cb24cnn_nlat
         do ilev=1,cb24cnn_nlev
             do ilon=1,cb24cnn_nlon
-               Xtrans(ilon,ilev,ilat)=out_for(ilon,ilat,ilev,1) !U
+               Xtrans(ilon,ilev,ilat)=out_for(1,ilev,ilat,ilon) !U
             end do
         end do
     end do
@@ -654,7 +655,7 @@ contains
     do ilat=1,cb24cnn_nlat
         do ilev=1,cb24cnn_nlev
             do ilon=1,cb24cnn_nlon
-               Xtrans(ilon,ilev,ilat)=out_for(ilon,ilat,ilev,2) !V
+               Xtrans(ilon,ilev,ilat)=out_for(2,ilev,ilat,ilon) !V
             end do
         end do
     end do
@@ -667,7 +668,7 @@ contains
     do ilat=1,cb24cnn_nlat
         do ilev=1,cb24cnn_nlev
             do ilon=1,cb24cnn_nlon
-               Xtrans(ilon,ilev,ilat)=out_for(ilon,ilat,ilev,3) !T
+               Xtrans(ilon,ilev,ilat)=out_for(3,ilev,ilat,ilon) !T
             end do
         end do
     end do
@@ -681,7 +682,7 @@ contains
     do ilat=1,cb24cnn_nlat
         do ilev=1,cb24cnn_nlev
             do ilon=1,cb24cnn_nlon
-               Xtrans(ilon,ilev,ilat)=out_for(ilon,ilat,ilev,4) !Q
+               Xtrans(ilon,ilev,ilat)=out_for(4,ilev,ilat,ilon) !Q
             end do
         end do
     end do

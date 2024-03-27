@@ -884,7 +884,8 @@ contains
     !++WEC
     use stochaiing,         only: Stochai_Model, stochaiing_init
     use damlining,          only: DAMLin_Model,damlining_init
-    use cb24cnn,            only: cb24cnn_init
+    !use cb24cnn,            only: cb24cnn_init
+    use cb24mean,            only: cb24mean_init
     !--WEC
     ! Input/output arguments
     type(physics_state), pointer       :: phys_state(:)
@@ -1082,7 +1083,8 @@ contains
     call cam_stoch_sppt_init(pbuf2d)
    !call cam_stoch_skebs_init(pbuf2d)
 !JDB
-    call cb24cnn_init
+    !call cb24cnn_init
+    call cb24mean_init
   end subroutine phys_init
 
   !
@@ -1103,7 +1105,8 @@ contains
     use spcam_drivers,  only: tphysbc_spcam
     use spmd_utils,     only: mpicom
     use physics_buffer, only: physics_buffer_desc, pbuf_get_chunk, pbuf_allocate
-    use cb24cnn,        only: cb24cnn_timestep_tend,cb24cnn_set_tend
+    !use cb24cnn,        only: cb24cnn_timestep_tend,cb24cnn_set_tend
+    use cb24mean,        only: cb24mean_timestep_tend,cb24mean_set_tend
 #if (defined BFB_CAM_SCAM_IOP )
     use cam_history,    only: outfld
 #endif
@@ -1219,12 +1222,19 @@ contains
     end do
 
     !++WEC Call here so python is only ever called once per timestep 
-    if (masterproc) write(iulog,*)'nintendo past cb24cnn_timestep_init '
-    call cb24cnn_timestep_tend() 
+    !if (masterproc) write(iulog,*)'nintendo past cb24cnn_timestep_init '
+    !call cb24cnn_timestep_tend() 
+    !do c=begchunk, endchunk
+    !    call cb24cnn_set_tend(phys_state(c),ptend)
+    !    call physics_update(phys_state(c),ptend,ztodt,phys_tend(c)) 
+    !    call check_energy_chng(phys_state(c),phys_tend(c), "cb24cnn", nstep, ztodt, zero, zero, zero, zero)
+    !end do
+
+    call cb24mean_timestep_tend() 
     do c=begchunk, endchunk
-        call cb24cnn_set_tend(phys_state(c),ptend)
+        call cb24mean_set_tend(phys_state(c),ptend)
         call physics_update(phys_state(c),ptend,ztodt,phys_tend(c)) 
-        call check_energy_chng(phys_state(c),phys_tend(c), "cb24cnn", nstep, ztodt, zero, zero, zero, zero)
+        call check_energy_chng(phys_state(c),phys_tend(c), "cb24mean", nstep, ztodt, zero, zero, zero, zero)
     end do
     !--WEC
     
@@ -1353,7 +1363,8 @@ contains
     use chemistry, only : chem_final
     use carma_intr, only : carma_final
     use wv_saturation, only : wv_sat_final
-    use cb24cnn, only : cb24cnn_finalize
+    !use cb24cnn, only : cb24cnn_finalize
+    use cb24mean, only : cb24mean_finalize
     !-----------------------------------------------------------------------
     !
     ! Purpose:
@@ -1374,7 +1385,8 @@ contains
     call chem_final
     call carma_final
     call wv_sat_final
-    call cb24cnn_finalize
+    !call cb24cnn_finalize
+    call cb24mean_finalize
   end subroutine phys_final
 
 
@@ -2021,7 +2033,7 @@ contains
     use damlining,          only: regress_daml_timestep_tend,regress_diurnal_daml_timestep_tend,&
                                   DAMLin_Model,DAMLin_Model_Regress,damlining_timestep_tend,damlining_diurnal_timestep_tend !++WEC
 
-    use cb24cnn,        only: cb24cnn_timestep_tend,cb24cnn_timestep_init
+    !use cb24cnn,        only: cb24cnn_timestep_tend,cb24cnn_timestep_init
     use ieee_exceptions, only: ieee_get_halting_mode, ieee_set_halting_mode, ieee_all, ieee_set_flag
     ! Arguments
 
@@ -2747,11 +2759,11 @@ contains
         endif
     endif
 
-    call t_startf('cb24cnn_init')
-    call cb24cnn_timestep_init(state,ptend,pbuf,cam_in,cam_out)
+    !call t_startf('cb24cnn_init')
+    !call cb24cnn_timestep_init(state,ptend,pbuf,cam_in,cam_out)
     !if (masterproc) write(iulog,*)'nintendo past cb24cnn_timestep_init '
     !call cb24cnn_timestep_tend(state,ptend,pbuf,cam_in,cam_out) !WEC please turn off later...
-    call t_stopf('cb24cnn_init')
+    !call t_stopf('cb24cnn_init')
 
     call t_startf('bc_history_write')
     call diag_phys_writeout(state, pbuf)
@@ -2819,7 +2831,6 @@ contains
     call diag_export(cam_out)
     call t_stopf('diag_export')
 
-    if (masterproc) write(iulog,*)'Taco Taco Taco'
 
   end subroutine tphysbc
 
