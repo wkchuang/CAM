@@ -139,8 +139,9 @@ integer :: flns_idx     = 0
 integer :: flnt_idx     = 0
 integer :: cldfsnow_idx = 0
 integer :: cld_idx      = 0
-integer :: flntc_idx     = 0 !++WEC
-integer :: fsntoa_idx     = 0 !++WEC
+integer :: flntc_idx    = 0 !++WEC
+integer :: fsntoa_idx   = 0 !++WEC
+integer :: flutc_idx    = 0 !++WEC
 
 character(len=4) :: diag(0:N_DIAG) =(/'    ','_d1 ','_d2 ','_d3 ','_d4 ','_d5 ','_d6 ','_d7 ','_d8 ','_d9 ','_d10'/)
 
@@ -251,6 +252,7 @@ subroutine radiation_register
    call pbuf_add_field('FLNS' , 'global',dtype_r8,(/pcols/), flns_idx) ! Surface net longwave flux
    call pbuf_add_field('FLNT' , 'global',dtype_r8,(/pcols/), flnt_idx) ! Top-of-model net longwave flux
    call pbuf_add_field('FLNTC', 'global', dtype_r8, (/pcols/),flntc_idx) !++WEC
+   call pbuf_add_field('FLUTC', 'global', dtype_r8, (/pcols/),flutc_idx) !++WEC
    call pbuf_add_field('FSNTOA', 'global', dtype_r8, (/pcols/),fsntoa_idx) !++WEC
 
    ! If the namelist has been configured for preserving the spectral fluxes, then create
@@ -765,7 +767,8 @@ subroutine radiation_tend( &
    real(r8), pointer :: fsnt(:)  ! Net column abs solar flux at model top
    real(r8), pointer :: flns(:)  ! Srf longwave cooling (up-down) flux
    real(r8), pointer :: flnt(:)  ! Net outgoing lw flux at model top
-
+   real(r8), pointer :: flutc(:) ! Net outgoing clear sky lw flux at model top
+   
    real(r8), pointer, dimension(:,:,:) :: su => NULL()  ! shortwave spectral flux up
    real(r8), pointer, dimension(:,:,:) :: sd => NULL()  ! shortwave spectral flux down
    real(r8), pointer, dimension(:,:,:) :: lu => NULL()  ! longwave  spectral flux up
@@ -829,7 +832,7 @@ subroutine radiation_tend( &
    real(r8) :: fcns(pcols,pverp)    ! net clear-sky shortwave flux
    real(r8) :: fnl(pcols,pverp)     ! net longwave flux
    real(r8) :: fcnl(pcols,pverp)    ! net clear-sky longwave flux
-
+   
    ! for COSP
    real(r8) :: emis(pcols,pver)        ! Cloud longwave emissivity
    real(r8) :: gb_snow_tau(pcols,pver) ! grid-box mean snow_tau
@@ -902,6 +905,7 @@ subroutine radiation_tend( &
    call pbuf_get_field(pbuf, fsns_idx, fsns)
    call pbuf_get_field(pbuf, flns_idx, flns)
    call pbuf_get_field(pbuf, flnt_idx, flnt)
+   call pbuf_get_field(pbuf, flutc_idx,flutc) !WEC+++
 
    if (spectralflux) then
       call pbuf_get_field(pbuf, su_idx, su)
@@ -1161,6 +1165,8 @@ subroutine radiation_tend( &
                   rd%flut, rd%flutc, fnl, fcnl, rd%fldsc,            &
                   lu, ld)
 
+               flutc = rd%flutc !WEC++
+               
                !  Output fluxes at 200 mb
                call vertinterp(ncol, pcols, pverp, state%pint, 20000._r8, fnl,  rd%fln200)
                call vertinterp(ncol, pcols, pverp, state%pint, 20000._r8, fcnl, rd%fln200c)

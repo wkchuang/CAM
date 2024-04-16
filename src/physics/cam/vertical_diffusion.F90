@@ -105,8 +105,8 @@ type(vdiff_selector) :: fieldlist_wet                ! Logical switches for mois
 type(vdiff_selector) :: fieldlist_dry                ! Logical switches for dry mixing ratio diffusion
 type(vdiff_selector) :: fieldlist_molec              ! Logical switches for molecular diffusion
 integer              :: tke_idx, kvh_idx, kvm_idx    ! TKE and eddy diffusivity indices for fields in the physics buffer
-integer              :: ustarwec_idx ! +++WEC
 integer              :: kvt_idx                      ! Index for kinematic molecular conductivity
+integer              :: ustarwec_idx ! +++WEC
 integer              :: turbtype_idx, smaw_idx       ! Turbulence type and instability functions
 integer              :: tauresx_idx, tauresy_idx     ! Redisual stress for implicit surface stress
 
@@ -233,7 +233,7 @@ subroutine vd_register()
   call pbuf_add_field('tpert', 'global', dtype_r8, (/pcols/),                       tpert_idx)
   call pbuf_add_field('qpert', 'global', dtype_r8, (/pcols,pcnst/),                 qpert_idx)
   call pbuf_add_field('ustarwec', 'global', dtype_r8, (/pcols/), ustarwec_idx) !++WEC
-  
+
   if (trim(shallow_scheme) == 'UNICON') then
      call pbuf_add_field('qtl_flx',  'global', dtype_r8, (/pcols, pverp/), qtl_flx_idx)
      call pbuf_add_field('qti_flx',  'global', dtype_r8, (/pcols, pverp/), qti_flx_idx)
@@ -472,7 +472,6 @@ subroutine vertical_diffusion_init(pbuf2d)
      call addfld( 'PBLH'        , horiz_only    , 'A', 'm'      , 'PBL height'                                         )
      call addfld( 'QT'          , (/ 'lev' /)   , 'A', 'kg/kg'  , 'Total water mixing ratio'                           )
      call addfld( 'SL'          , (/ 'lev' /)   , 'A', 'J/kg'   , 'Liquid water static energy'                         )
-     call addfld( 'SLV'         , (/ 'lev' /)   , 'A', 'J/kg'   , 'Liq wat virtual static energy'                      )
      call addfld( 'SLFLX'       , (/ 'ilev' /)  , 'A', 'W/m2'   , 'Liquid static energy flux'                          )
      call addfld( 'QTFLX'       , (/ 'ilev' /)  , 'A', 'W/m2'   , 'Total water flux'                                   )
      call addfld( 'TKE'         , (/ 'ilev' /)  , 'A', 'm2/s2'  , 'Turbulent Kinetic Energy'                           )
@@ -483,7 +482,7 @@ subroutine vertical_diffusion_init(pbuf2d)
      call addfld( 'VFLX'        , (/ 'ilev' /)  , 'A', 'W/m2'   , 'Meridional momentm flux'                            )
      call register_vector_field('UFLX', 'VFLX')
   end if
-
+  call addfld( 'SLV'         , (/ 'lev' /)   , 'A', 'J/kg'   , 'Liq wat virtual static energy'                      ) !++WEC
   call addfld( 'USTAR'       , horiz_only    , 'A', 'm/s'    , 'Surface friction velocity'                          )
   call addfld( 'KVH'         , (/ 'ilev' /)  , 'A', 'm2/s'   , 'Vertical diffusion diffusivities (heat/moisture)'   )
   call addfld( 'KVM'         , (/ 'ilev' /)  , 'A', 'm2/s'   , 'Vertical diffusion diffusivities (momentum)'        )
@@ -1441,7 +1440,6 @@ subroutine vertical_diffusion_tend( &
   if (.not. do_pbl_diags) then
      call outfld( 'QT'           , qt,                        pcols, lchnk )
      call outfld( 'SL'           , sl,                        pcols, lchnk )
-     call outfld( 'SLV'          , slv,                       pcols, lchnk )
      call outfld( 'SLFLX'        , slflx,                     pcols, lchnk )
      call outfld( 'QTFLX'        , qtflx,                     pcols, lchnk )
      call outfld( 'UFLX'         , uflx,                      pcols, lchnk )
@@ -1452,6 +1450,7 @@ subroutine vertical_diffusion_tend( &
      call outfld( 'TPERT'        , tpert,                     pcols, lchnk )
      call outfld( 'QPERT'        , qpert,                     pcols, lchnk )
   end if
+  call outfld( 'SLV'          , slv,                       pcols, lchnk ) !++WEC
   call outfld( 'USTAR'        , ustar,                     pcols, lchnk )
   call outfld( 'KVH'          , kvh,                       pcols, lchnk )
   call outfld( 'KVT'          , kvt,                       pcols, lchnk )
@@ -1473,6 +1472,7 @@ subroutine vertical_diffusion_tend( &
   call p%finalize()
   call p_dry%finalize()
   call pbuf_set_field(pbuf, ustarwec_idx, ustar) !+++WEC
+  
 end subroutine vertical_diffusion_tend
 
 ! =============================================================================== !
