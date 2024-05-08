@@ -22,7 +22,9 @@ public :: stochastic_emulated_init_cam
 integer, parameter, public  :: ncd = 35
 integer, parameter, public  :: ncdp = ncd + 1
 
-character(len=cl) :: stochastic_emulated_filename_quantile = " "
+character(len=cl) :: qc_regressor_path = " "
+character(len=cl) :: nc_regressor_path = " "
+character(len=cl) :: nr_regressor_path = " "
 character(len=cl) :: stochastic_emulated_filename_input_scale = " "
 character(len=cl) :: stochastic_emulated_filename_output_scale = " "
 
@@ -41,7 +43,7 @@ subroutine stochastic_emulated_readnl(nlfile)
   integer :: unitn, ierr
   character(len=*), parameter :: sub = 'stochastic_emulated_readnl'
 
-  namelist /stochastic_emulated_nl/ stochastic_emulated_filename_quantile, stochastic_emulated_filename_input_scale, &
+  namelist /stochastic_emulated_nl/ qc_regressor_path, nc_regressor_path, nr_regressor_path, stochastic_emulated_filename_input_scale, &
                                stochastic_emulated_filename_output_scale
 
   if (masterproc) then
@@ -59,8 +61,16 @@ subroutine stochastic_emulated_readnl(nlfile)
   end if
 
   ! Broadcast namelist variables
-  call mpi_bcast(stochastic_emulated_filename_quantile, cl, mpi_character, mstrid, mpicom, ierr)
-  if (ierr /= 0) call endrun(sub//": FATAL: mpi_bcast: stochastic_emulated_filename_quantile")
+!   call mpi_bcast(stochastic_emulated_filename_quantile, cl, mpi_character, mstrid, mpicom, ierr)
+!   if (ierr /= 0) call endrun(sub//": FATAL: mpi_bcast: stochastic_emulated_filename_quantile")
+  call mpi_bcast(qc_regressor_path, cl, mpi_character, mstrid, mpicom, ierr)
+  if (ierr /= 0) call endrun(sub//": FATAL: mpi_bcast: qc_regressor_path")
+
+  call mpi_bcast(nc_regressor_path, cl, mpi_character, mstrid, mpicom, ierr)
+  if (ierr /= 0) call endrun(sub//": FATAL: mpi_bcast: nc_regressor_path")
+
+  call mpi_bcast(nr_regressor_path, cl, mpi_character, mstrid, mpicom, ierr)
+  if (ierr /= 0) call endrun(sub//": FATAL: mpi_bcast: nr_regressor_path")
 
   call mpi_bcast(stochastic_emulated_filename_input_scale, cl, mpi_character, mstrid, mpicom, ierr)
   if (ierr /= 0) call endrun(sub//": FATAL: mpi_bcast: stochastic_emulated_filename_input_scale")
@@ -68,18 +78,18 @@ subroutine stochastic_emulated_readnl(nlfile)
   call mpi_bcast(stochastic_emulated_filename_output_scale, cl, mpi_character, mstrid, mpicom, ierr)
   if (ierr /= 0) call endrun(sub//": FATAL: mpi_bcast: stochastic_emulated_filename_output_scale")
 
-  write(iulog,*) 'PUMAS stochastic_emulated_readnl, stochastic_emulated_filename_quantile=',&
-               stochastic_emulated_filename_quantile
+!   write(iulog,*) 'PUMAS stochastic_emulated_readnl, stochastic_emulated_filename_quantile=',&
+!                stochastic_emulated_filename_quantile
 
 end subroutine stochastic_emulated_readnl
 
-subroutine stochastic_emulated_init_cam(stochastic_emulated_filename_quantile_out, &
+subroutine stochastic_emulated_init_cam(qc_regressor_path_out, nc_regressor_path_out, nr_regressor_path_out, &
                                        stochastic_emulated_filename_input_scale_out, &
                                        stochastic_emulated_filename_output_scale_out)
 
     use cam_history_support, only:          add_hist_coord
 
-    character(len=cl),intent(out) :: stochastic_emulated_filename_quantile_out
+    character(len=cl),intent(out) :: qc_regressor_path_out, nc_regressor_path_out, nr_regressor_path_out
     character(len=cl),intent(out) :: stochastic_emulated_filename_input_scale_out
     character(len=cl),intent(out) :: stochastic_emulated_filename_output_scale_out
 
@@ -124,7 +134,9 @@ subroutine stochastic_emulated_init_cam(stochastic_emulated_filename_quantile_ou
     call addfld('qr_fixer',(/'trop_cld_lev'/),'A','kg/kg','delta qr due to ML fixer')
     call addfld('nr_fixer',(/'trop_cld_lev'/),'A','kg/kg','delta nr due to ML fixer')
 
-    stochastic_emulated_filename_quantile_out     = stochastic_emulated_filename_quantile
+    qc_regressor_path_out = qc_regressor_path
+    nc_regressor_path_out = nc_regressor_path
+    nr_regressor_path_out = nr_regressor_path
     stochastic_emulated_filename_input_scale_out  = stochastic_emulated_filename_input_scale
     stochastic_emulated_filename_output_scale_out = stochastic_emulated_filename_output_scale
 

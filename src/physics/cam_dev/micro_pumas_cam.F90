@@ -880,10 +880,10 @@ subroutine micro_pumas_cam_init(pbuf2d)
    integer :: budget_histfile      ! output history file number for budget fields
    integer :: ierr
    character(128) :: errstring     ! return status (non-blank for error return)
-
-   character(len=cl) :: stochastic_emulated_filename_quantile, stochastic_emulated_filename_input_scale, &
+   character(len=cl) :: qc_regressor_path, nc_regressor_path, nr_regressor_path
+   character(len=cl) :: stochastic_emulated_filename_input_scale, &
                                        stochastic_emulated_filename_output_scale
-
+   ! pmid_mbar(:ncol,top_lev:) = state%pmid(:ncol,top_lev:) / 100 ! get pressure in millibars
    !-----------------------------------------------------------------------
 
    call phys_getopts(use_subcol_microp_out=use_subcol_microp, &
@@ -915,7 +915,7 @@ subroutine micro_pumas_cam_init(pbuf2d)
    if (trim(micro_mg_warm_rain) == 'tau') then
       call stochastic_tau_init_cam()
    else if( trim(micro_mg_warm_rain) == 'emulated') then
-      call stochastic_emulated_init_cam(stochastic_emulated_filename_quantile, &
+      call stochastic_emulated_init_cam(qc_regressor_path, nc_regressor_path, nr_regressor_path, &
                                        stochastic_emulated_filename_input_scale, &
                                        stochastic_emulated_filename_output_scale)
    end if
@@ -939,7 +939,7 @@ subroutine micro_pumas_cam_init(pbuf2d)
            micro_mg_nccons, micro_mg_nicons, micro_mg_ncnst, &
            micro_mg_ninst, micro_mg_ngcons, micro_mg_ngnst, &
            micro_mg_nrcons,  micro_mg_nrnst, micro_mg_nscons, micro_mg_nsnst, &
-           stochastic_emulated_filename_quantile, stochastic_emulated_filename_input_scale, &
+           qc_regressor_path, nc_regressor_path, nr_regressor_path, stochastic_emulated_filename_input_scale, &
            stochastic_emulated_filename_output_scale, iulog, errstring)
 
    call handle_errmsg(errstring, subname="micro_pumas_cam_init")
