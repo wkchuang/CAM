@@ -25,8 +25,12 @@ integer, parameter, public  :: ncdp = ncd + 1
 character(len=cl) :: qc_regressor_path = " "
 character(len=cl) :: nc_regressor_path = " "
 character(len=cl) :: nr_regressor_path = " "
-character(len=cl) :: stochastic_emulated_filename_input_scale = " "
-character(len=cl) :: stochastic_emulated_filename_output_scale = " "
+character(len=cl) :: qc_input_scale = " "
+character(len=cl) :: qc_output_scale = " "
+character(len=cl) :: nc_input_scale = " "
+character(len=cl) :: nc_output_scale = " "
+character(len=cl) :: nr_input_scale = " "
+character(len=cl) :: nr_output_scale = " "
 
 !===============================================================================
 contains
@@ -43,8 +47,8 @@ subroutine stochastic_emulated_readnl(nlfile)
   integer :: unitn, ierr
   character(len=*), parameter :: sub = 'stochastic_emulated_readnl'
 
-  namelist /stochastic_emulated_nl/ qc_regressor_path, nc_regressor_path, nr_regressor_path, stochastic_emulated_filename_input_scale, &
-                               stochastic_emulated_filename_output_scale
+  namelist /stochastic_emulated_nl/ qc_regressor_path, nc_regressor_path, nr_regressor_path, qc_input_scale, &
+                               qc_output_scale, nc_input_scale, nc_output_scale, nr_input_scale, nr_output_scale
 
   if (masterproc) then
      unitn = getunit()
@@ -72,10 +76,22 @@ subroutine stochastic_emulated_readnl(nlfile)
   call mpi_bcast(nr_regressor_path, cl, mpi_character, mstrid, mpicom, ierr)
   if (ierr /= 0) call endrun(sub//": FATAL: mpi_bcast: nr_regressor_path")
 
-  call mpi_bcast(stochastic_emulated_filename_input_scale, cl, mpi_character, mstrid, mpicom, ierr)
+  call mpi_bcast(qc_input_scale, cl, mpi_character, mstrid, mpicom, ierr)
   if (ierr /= 0) call endrun(sub//": FATAL: mpi_bcast: stochastic_emulated_filename_input_scale")
 
-  call mpi_bcast(stochastic_emulated_filename_output_scale, cl, mpi_character, mstrid, mpicom, ierr)
+  call mpi_bcast(qc_output_scale, cl, mpi_character, mstrid, mpicom, ierr)
+  if (ierr /= 0) call endrun(sub//": FATAL: mpi_bcast: stochastic_emulated_filename_output_scale")
+
+  call mpi_bcast(nc_input_scale, cl, mpi_character, mstrid, mpicom, ierr)
+  if (ierr /= 0) call endrun(sub//": FATAL: mpi_bcast: stochastic_emulated_filename_input_scale")
+
+  call mpi_bcast(nc_output_scale, cl, mpi_character, mstrid, mpicom, ierr)
+  if (ierr /= 0) call endrun(sub//": FATAL: mpi_bcast: stochastic_emulated_filename_output_scale")
+  
+  call mpi_bcast(nr_input_scale, cl, mpi_character, mstrid, mpicom, ierr)
+  if (ierr /= 0) call endrun(sub//": FATAL: mpi_bcast: stochastic_emulated_filename_input_scale")
+
+  call mpi_bcast(nr_output_scale, cl, mpi_character, mstrid, mpicom, ierr)
   if (ierr /= 0) call endrun(sub//": FATAL: mpi_bcast: stochastic_emulated_filename_output_scale")
 
 !   write(iulog,*) 'PUMAS stochastic_emulated_readnl, stochastic_emulated_filename_quantile=',&
@@ -84,14 +100,14 @@ subroutine stochastic_emulated_readnl(nlfile)
 end subroutine stochastic_emulated_readnl
 
 subroutine stochastic_emulated_init_cam(qc_regressor_path_out, nc_regressor_path_out, nr_regressor_path_out, &
-                                       stochastic_emulated_filename_input_scale_out, &
-                                       stochastic_emulated_filename_output_scale_out)
+                                       qc_input_scale_out, qc_output_scale_out, nc_input_scale_out, nc_output_scale_out, &
+                                       nr_input_scale_out, nr_output_scale_out)
 
     use cam_history_support, only:          add_hist_coord
 
     character(len=cl),intent(out) :: qc_regressor_path_out, nc_regressor_path_out, nr_regressor_path_out
-    character(len=cl),intent(out) :: stochastic_emulated_filename_input_scale_out
-    character(len=cl),intent(out) :: stochastic_emulated_filename_output_scale_out
+    character(len=cl),intent(out) :: qc_input_scale_out, nc_input_scale_out, nr_input_scale_out
+    character(len=cl),intent(out) :: qc_output_scale_out, nc_output_scale_out, nr_output_scale_out
 
     call add_hist_coord('bins_ncd', ncd, 'bins for TAU microphysics')
 
@@ -137,9 +153,12 @@ subroutine stochastic_emulated_init_cam(qc_regressor_path_out, nc_regressor_path
     qc_regressor_path_out = qc_regressor_path
     nc_regressor_path_out = nc_regressor_path
     nr_regressor_path_out = nr_regressor_path
-    stochastic_emulated_filename_input_scale_out  = stochastic_emulated_filename_input_scale
-    stochastic_emulated_filename_output_scale_out = stochastic_emulated_filename_output_scale
-
+    qc_input_scale_out  = qc_input_scale
+    qc_output_scale_out = qc_output_scale
+    nc_input_scale_out  = nc_input_scale
+    nc_output_scale_out = nc_output_scale
+    nr_input_scale_out  = nr_input_scale
+    nr_output_scale_out = nr_output_scale
 end subroutine stochastic_emulated_init_cam
 end module stochastic_emulated_cam
 

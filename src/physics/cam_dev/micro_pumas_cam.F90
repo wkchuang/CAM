@@ -881,8 +881,8 @@ subroutine micro_pumas_cam_init(pbuf2d)
    integer :: ierr
    character(128) :: errstring     ! return status (non-blank for error return)
    character(len=cl) :: qc_regressor_path, nc_regressor_path, nr_regressor_path
-   character(len=cl) :: stochastic_emulated_filename_input_scale, &
-                                       stochastic_emulated_filename_output_scale
+   character(len=cl) :: qc_input_scale, qc_output_scale, nc_input_scale, &
+                                       nc_output_scale, nr_input_scale, nr_output_scale
    ! pmid_mbar(:ncol,top_lev:) = state%pmid(:ncol,top_lev:) / 100 ! get pressure in millibars
    !-----------------------------------------------------------------------
 
@@ -916,8 +916,8 @@ subroutine micro_pumas_cam_init(pbuf2d)
       call stochastic_tau_init_cam()
    else if( trim(micro_mg_warm_rain) == 'emulated') then
       call stochastic_emulated_init_cam(qc_regressor_path, nc_regressor_path, nr_regressor_path, &
-                                       stochastic_emulated_filename_input_scale, &
-                                       stochastic_emulated_filename_output_scale)
+                                       qc_input_scale, qc_output_scale, nc_input_scale, nc_output_scale, &
+                                       nr_input_scale, nr_output_scale)
    end if
 
    call micro_mg_init3_0( &

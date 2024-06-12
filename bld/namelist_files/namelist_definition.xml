@@ -2776,12 +2776,32 @@ Default: set in namelist_defaults
 Neural net file for warm_rain machine learning
 </entry>
 
-<entry id="stochastic_emulated_filename_input_scale" type="char*256" input_pathname="abs" category="microphys"
+<entry id="qc_input_scale" type="char*256" input_pathname="abs" category="microphys"
        group="stochastic_emulated_nl" >
 Neural net input scaling values file for warm_rain machine learning
 </entry>
 
-<entry id="stochastic_emulated_filename_output_scale" type="char*256" input_pathname="abs" category="microphys"
+<entry id="qc_output_scale" type="char*256" input_pathname="abs" category="microphys"
+       group="stochastic_emulated_nl" >
+Neural net output scaling values file for warm_rain machine learning
+</entry>
+
+<entry id="nc_input_scale" type="char*256" input_pathname="abs" category="microphys"
+       group="stochastic_emulated_nl" >
+Neural net input scaling values file for warm_rain machine learning
+</entry>
+
+<entry id="nc_output_scale" type="char*256" input_pathname="abs" category="microphys"
+       group="stochastic_emulated_nl" >
+Neural net output scaling values file for warm_rain machine learning
+</entry>
+
+<entry id="nr_input_scale" type="char*256" input_pathname="abs" category="microphys"
+       group="stochastic_emulated_nl" >
+Neural net input scaling values file for warm_rain machine learning
+</entry>
+
+<entry id="nr_output_scale" type="char*256" input_pathname="abs" category="microphys"
        group="stochastic_emulated_nl" >
 Neural net output scaling values file for warm_rain machine learning
 </entry>
