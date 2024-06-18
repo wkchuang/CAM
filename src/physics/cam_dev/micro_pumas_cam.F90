@@ -939,8 +939,8 @@ subroutine micro_pumas_cam_init(pbuf2d)
            micro_mg_nccons, micro_mg_nicons, micro_mg_ncnst, &
            micro_mg_ninst, micro_mg_ngcons, micro_mg_ngnst, &
            micro_mg_nrcons,  micro_mg_nrnst, micro_mg_nscons, micro_mg_nsnst, &
-           qc_regressor_path, nc_regressor_path, nr_regressor_path, stochastic_emulated_filename_input_scale, &
-           stochastic_emulated_filename_output_scale, iulog, errstring)
+           qc_regressor_path, nc_regressor_path, nr_regressor_path, qc_input_scale, qc_output_scale, &
+           nc_input_scale, nc_output_scale, nr_input_scale, nr_output_scale, iulog, errstring)
 
    call handle_errmsg(errstring, subname="micro_pumas_cam_init")
 

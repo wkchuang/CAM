@@ -77,22 +77,22 @@ subroutine stochastic_emulated_readnl(nlfile)
   if (ierr /= 0) call endrun(sub//": FATAL: mpi_bcast: nr_regressor_path")
 
   call mpi_bcast(qc_input_scale, cl, mpi_character, mstrid, mpicom, ierr)
-  if (ierr /= 0) call endrun(sub//": FATAL: mpi_bcast: stochastic_emulated_filename_input_scale")
+  if (ierr /= 0) call endrun(sub//": FATAL: mpi_bcast: qc_input_scale")
 
   call mpi_bcast(qc_output_scale, cl, mpi_character, mstrid, mpicom, ierr)
-  if (ierr /= 0) call endrun(sub//": FATAL: mpi_bcast: stochastic_emulated_filename_output_scale")
+  if (ierr /= 0) call endrun(sub//": FATAL: mpi_bcast: qc_output_scale")
 
   call mpi_bcast(nc_input_scale, cl, mpi_character, mstrid, mpicom, ierr)
-  if (ierr /= 0) call endrun(sub//": FATAL: mpi_bcast: stochastic_emulated_filename_input_scale")
+  if (ierr /= 0) call endrun(sub//": FATAL: mpi_bcast: nc_input_scale")
 
   call mpi_bcast(nc_output_scale, cl, mpi_character, mstrid, mpicom, ierr)
-  if (ierr /= 0) call endrun(sub//": FATAL: mpi_bcast: stochastic_emulated_filename_output_scale")
+  if (ierr /= 0) call endrun(sub//": FATAL: mpi_bcast: nc_output_scale")
   
   call mpi_bcast(nr_input_scale, cl, mpi_character, mstrid, mpicom, ierr)
-  if (ierr /= 0) call endrun(sub//": FATAL: mpi_bcast: stochastic_emulated_filename_input_scale")
+  if (ierr /= 0) call endrun(sub//": FATAL: mpi_bcast: nr_input_scale")
 
   call mpi_bcast(nr_output_scale, cl, mpi_character, mstrid, mpicom, ierr)
-  if (ierr /= 0) call endrun(sub//": FATAL: mpi_bcast: stochastic_emulated_filename_output_scale")
+  if (ierr /= 0) call endrun(sub//": FATAL: mpi_bcast: nr_output_scale")
 
 !   write(iulog,*) 'PUMAS stochastic_emulated_readnl, stochastic_emulated_filename_quantile=',&
 !                stochastic_emulated_filename_quantile
