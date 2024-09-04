@@ -25,8 +25,9 @@ public :: &
    cnst_chk_dim,        &! check that number of constituents added equals dimensions (pcnst)
    cnst_cam_outfld,     &! Returns true if default CAM output was specified in the cnst_add calls.
    cnst_set_spec_class, &! Sets the type of species class
-   cnst_set_convtran2    ! Override for convtran2 values set by the cnst_add routine
-
+   cnst_set_convtran2,  &! Override for convtran2 values set by the cnst_add routine
+   setup_moist_indices   ! sets indices for 4 water forms
+   
 ! Public data
 
 integer, parameter, public :: pcnst  = PCNST      ! number of advected constituents (including water vapor)
@@ -527,6 +528,19 @@ function cnst_cam_outfld(m)
    end if
 
 end function cnst_cam_outfld
+
+!==============================================================================
+
+subroutine setup_moist_indices()
+
+   implicit none
+
+   call cnst_get_ind('CLDICE', icldice, abrtf=.false.)
+   call cnst_get_ind('CLDLIQ', icldliq, abrtf=.false.)
+   call cnst_get_ind('RAINQM', irain, abrtf=.false.)
+   call cnst_get_ind('SNOWQM', isnow, abrtf=.false.)
+
+ end subroutine setup_moist_indices
 
 !==============================================================================
 
