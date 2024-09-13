@@ -328,7 +328,7 @@ contains
     ! ***NOTE*** No registering constituents after the call to cnst_chk_dim.
 
     call offline_driver_reg()
-    call cb24mjocnn_register_cam()
+    !call cb24mjocnn_register_cam()
 
   end subroutine phys_register
 
@@ -935,7 +935,7 @@ contains
 
     ! Initialize qneg3 and qneg4
     call qneg_init()
-    call cb24mjocnn_init
+    !call cb24mjocnn_init
     call cb24cnn_init
 
   end subroutine phys_init
@@ -1076,7 +1076,7 @@ contains
 
     !++WEC Call here so python is only ever called once per timestep 
     if (masterproc) write(iulog,*)'nintendo past cb24mjocnn_timestep_init '
-    call cb24mjocnn_timestep_tender() 
+    !call cb24mjocnn_timestep_tender() 
     !++WEC Call here so python is only ever called once per timestep 
     if (masterproc) write(iulog,*)'nintendo past cb24cnn_timestep_init '
     call cb24cnn_timestep_tend() 
@@ -1242,7 +1242,7 @@ contains
     call chem_final
     call carma_final
     call wv_sat_final
-    call cb24mjocnn_finalize
+    !call cb24mjocnn_finalize
     call cb24cnn_finalize
   end subroutine phys_final
 
@@ -2285,15 +2285,15 @@ contains
 
     
 
-    if((cb24mjocnn_Model).and.(cb24mjocnn_Model)) then
-      call t_startf('cb24mjocnn_init')
-      call cb24mjocnn_timestep_init(state,ptend,pbuf,cam_in,cam_out)
-      if (masterproc) write(iulog,*)'nintendo past cb24mjocnn_timestep_init '
-      call t_stopf('cb24mjocnn_init')
-      call cb24mjocnn_timestep_tend(state,ptend)
-      call physics_update(state,ptend,ztodt,tend)
-      call check_energy_chng(state, tend, "CNNmjo", nstep, ztodt, zero, zero, zero, zero)
-    endif
+    !if((cb24mjocnn_Model).and.(cb24mjocnn_Model)) then
+    !  call t_startf('cb24mjocnn_init')
+    !  call cb24mjocnn_timestep_init(state,ptend,pbuf,cam_in,cam_out)
+    !  if (masterproc) write(iulog,*)'nintendo past cb24mjocnn_timestep_init '
+    !  call t_stopf('cb24mjocnn_init')
+    !  call cb24mjocnn_timestep_tend(state,ptend)
+    !  call physics_update(state,ptend,ztodt,tend)
+    !  call check_energy_chng(state, tend, "CNNmjo", nstep, ztodt, zero, zero, zero, zero)
+    !endif
     !===================================================
     ! Moist physical parameteriztions complete:
     ! send dynamical variables, and derived variables to history file
