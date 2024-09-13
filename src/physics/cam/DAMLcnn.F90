@@ -125,29 +125,29 @@ module cb24cnn
 
   !derived type interfaces:
   !FTORCH vectors:
-  type(torch_module) :: model_ftorch1 !ftorch
-  type(torch_module) :: model_ftorch2 !ftorch
-  type(torch_module) :: model_ftorch3 !ftorch
-  type(torch_module) :: model_ftorch4 !ftorch
-  type(torch_module) :: model_ftorch5 !ftorch
-  type(torch_module) :: model_ftorch6 !ftorch
-  type(torch_module) :: model_ftorch7 !ftorch
-  type(torch_module) :: model_ftorch8 !ftorch
-  type(torch_module) :: model_ftorch9 !ftorch
-  type(torch_module) :: model_ftorch10 !ftorch
-  type(torch_module) :: model_ftorch11 !ftorch
-  type(torch_module) :: model_ftorch12 !ftorch
-  type(torch_module) :: model_ftorch13 !ftorch
-  type(torch_module) :: model_ftorch14 !ftorch
-  type(torch_module) :: model_ftorch15 !ftorch
-  type(torch_module) :: model_ftorch16 !ftorch
-  type(torch_module) :: model_ftorch17 !ftorch
-  type(torch_module) :: model_ftorch18 !ftorch
-  type(torch_module) :: model_ftorch19 !ftorch
-  type(torch_module) :: model_ftorch20 !ftorch
-  type(torch_module) :: model_ftorch21 !ftorch
-  type(torch_module) :: model_ftorch22 !ftorch
-  type(torch_module) :: model_ftorch23 !ftorch
+  type(torch_model) :: model_ftorch1 !ftorch
+  type(torch_model) :: model_ftorch2 !ftorch
+  type(torch_model) :: model_ftorch3 !ftorch
+  type(torch_model) :: model_ftorch4 !ftorch
+  type(torch_model) :: model_ftorch5 !ftorch
+  type(torch_model) :: model_ftorch6 !ftorch
+  type(torch_model) :: model_ftorch7 !ftorch
+  type(torch_model) :: model_ftorch8 !ftorch
+  type(torch_model) :: model_ftorch9 !ftorch
+  type(torch_model) :: model_ftorch10 !ftorch
+  type(torch_model) :: model_ftorch11 !ftorch
+  type(torch_model) :: model_ftorch12 !ftorch
+  type(torch_model) :: model_ftorch13 !ftorch
+  type(torch_model) :: model_ftorch14 !ftorch
+  type(torch_model) :: model_ftorch15 !ftorch
+  type(torch_model) :: model_ftorch16 !ftorch
+  type(torch_model) :: model_ftorch17 !ftorch
+  type(torch_model) :: model_ftorch18 !ftorch
+  type(torch_model) :: model_ftorch19 !ftorch
+  type(torch_model) :: model_ftorch20 !ftorch
+  type(torch_model) :: model_ftorch21 !ftorch
+  type(torch_model) :: model_ftorch22 !ftorch
+  type(torch_model) :: model_ftorch23 !ftorch
 
   !> Control structure for Python interface
   type, public :: python_interface ; private
@@ -273,74 +273,74 @@ contains
     !Load the Pytorch Model
     if(masterproc) then
     Torchpath1 = '/glade/work/wchapman/DA_ML/CESML_AI/Convert_To_Ftorch/UNET_lev_87.82123029232025mb_GPU.pt'
-    model_ftorch1 = torch_module_load(Torchpath1 ,device_type=torch_kCUDA,device_index=1)
+    call torch_model_load(model_ftorch1, Torchpath1 ,device_type=torch_kCUDA,device_index=1)
     !Load the Pytorch Model
     Torchpath2 = '/glade/work/wchapman/DA_ML/CESML_AI/Convert_To_Ftorch/UNET_lev_103.31712663173676mb_GPU.pt'
-    model_ftorch2 = torch_module_load(Torchpath2 ,device_type=torch_kCUDA,device_index=1)
+    call torch_model_load(model_ftorch2, Torchpath2 ,device_type=torch_kCUDA,device_index=1)
     !Load the Pytorch Model
     Torchpath3 = '/glade/work/wchapman/DA_ML/CESML_AI/Convert_To_Ftorch/UNET_lev_121.54724076390266mb_GPU.pt'
-    model_ftorch3 = torch_module_load(Torchpath3,device_type=torch_kCUDA,device_index=1)
+    call torch_model_load(model_ftorch3, Torchpath3,device_type=torch_kCUDA,device_index=1)
     if (masterproc) write(iulog,*) 'CHACHI Loaded 2'
     !Load the Pytorch Model
     Torchpath4 = '/glade/work/wchapman/DA_ML/CESML_AI/Convert_To_Ftorch/UNET_lev_142.99403876066208mb_GPU.pt'
-    model_ftorch4 = torch_module_load(Torchpath4,device_type=torch_kCUDA,device_index=1)
+    call torch_model_load(model_ftorch4, Torchpath4,device_type=torch_kCUDA,device_index=1)
     !Load the Pytorch Model
     Torchpath5 = '/glade/work/wchapman/DA_ML/CESML_AI/Convert_To_Ftorch/UNET_lev_168.22507977485657mb_GPU.pt'
-    model_ftorch5 = torch_module_load(Torchpath5,device_type=torch_kCUDA,device_index=1)
+    call torch_model_load(model_ftorch5, Torchpath5,device_type=torch_kCUDA,device_index=1)
     !Load the Pytorch Model
     Torchpath6 = '/glade/work/wchapman/DA_ML/CESML_AI/Convert_To_Ftorch/UNET_lev_197.9080867022276mb_GPU.pt'
-    model_ftorch6 = torch_module_load(Torchpath6,device_type=torch_kCUDA,device_index=1)
+    call torch_model_load(model_ftorch6, Torchpath6,device_type=torch_kCUDA,device_index=1)
     !Load the Pytorch Model
     Torchpath7 = '/glade/work/wchapman/DA_ML/CESML_AI/Convert_To_Ftorch/UNET_lev_232.82861895859241mb_GPU.pt'
-    model_ftorch7 = torch_module_load(Torchpath7,device_type=torch_kCUDA,device_index=1)
+    call torch_model_load(model_ftorch7, Torchpath7,device_type=torch_kCUDA,device_index=1)
     !Load the Pytorch Model
     Torchpath8 = '/glade/work/wchapman/DA_ML/CESML_AI/Convert_To_Ftorch/UNET_lev_273.9108167588711mb_GPU.pt'
-    model_ftorch8 = torch_module_load(Torchpath8,device_type=torch_kCUDA,device_index=1)
+    call torch_model_load(model_ftorch8, Torchpath8,device_type=torch_kCUDA,device_index=1)
     !Load the Pytorch Model
     Torchpath9 = '/glade/work/wchapman/DA_ML/CESML_AI/Convert_To_Ftorch/UNET_lev_322.2419023513794mb_GPU.pt'
-    model_ftorch9 = torch_module_load(Torchpath9,device_type=torch_kCUDA,device_index=1)
+    call torch_model_load(model_ftorch9, Torchpath9,device_type=torch_kCUDA,device_index=1)
     !Load the Pytorch Model
     Torchpath10 = '/glade/work/wchapman/DA_ML/CESML_AI/Convert_To_Ftorch/UNET_lev_379.10090386867523mb_GPU.pt'
-    model_ftorch10 = torch_module_load(Torchpath10,device_type=torch_kCUDA,device_index=1)
+    call torch_model_load(model_ftorch10, Torchpath10,device_type=torch_kCUDA,device_index=1)
     !Load the Pytorch Model
     Torchpath11 = '/glade/work/wchapman/DA_ML/CESML_AI/Convert_To_Ftorch/UNET_lev_445.992574095726mb_GPU.pt'
-    model_ftorch11 = torch_module_load(Torchpath11,device_type=torch_kCUDA,device_index=1)
+    call torch_model_load(model_ftorch11, Torchpath11,device_type=torch_kCUDA,device_index=1)
     !Load the Pytorch Model
     Torchpath12 = '/glade/work/wchapman/DA_ML/CESML_AI/Convert_To_Ftorch/UNET_lev_524.6871747076511mb_GPU.pt'
-    model_ftorch12 = torch_module_load(Torchpath12,device_type=torch_kCUDA,device_index=1)
+    call torch_model_load(model_ftorch12, Torchpath12,device_type=torch_kCUDA,device_index=1)
     !Load the Pytorch Model
     Torchpath13 = '/glade/work/wchapman/DA_ML/CESML_AI/Convert_To_Ftorch/UNET_lev_609.7786948084831mb_GPU.pt'
-    model_ftorch13 = torch_module_load(Torchpath13,device_type=torch_kCUDA,device_index=2)
+    call torch_model_load(model_ftorch13, Torchpath13,device_type=torch_kCUDA,device_index=2)
     !Load the Pytorch Model
     Torchpath14 = '/glade/work/wchapman/DA_ML/CESML_AI/Convert_To_Ftorch/UNET_lev_691.3894303143024mb_GPU.pt'
-    model_ftorch14 = torch_module_load(Torchpath14,device_type=torch_kCUDA,device_index=2)
+    call torch_model_load(model_ftorch14, Torchpath14,device_type=torch_kCUDA,device_index=2)
     !Load the Pytorch Model
     Torchpath15 = '/glade/work/wchapman/DA_ML/CESML_AI/Convert_To_Ftorch/UNET_lev_763.404481112957mb_GPU.pt'
-    model_ftorch15 = torch_module_load(Torchpath15,device_type=torch_kCUDA,device_index=2)
+    call torch_model_load(model_ftorch15, Torchpath15,device_type=torch_kCUDA,device_index=2)
     !Load the Pytorch Model
     Torchpath16 = '/glade/work/wchapman/DA_ML/CESML_AI/Convert_To_Ftorch/UNET_lev_820.8583686500788mb_GPU.pt'
-    model_ftorch16 = torch_module_load(Torchpath16,device_type=torch_kCUDA,device_index=2)
+    call torch_model_load(model_ftorch16, Torchpath16,device_type=torch_kCUDA,device_index=2)
     !Load the Pytorch Model
     Torchpath17 = '/glade/work/wchapman/DA_ML/CESML_AI/Convert_To_Ftorch/UNET_lev_859.5347665250301mb_GPU.pt'
-    model_ftorch17 = torch_module_load(Torchpath17,device_type=torch_kCUDA,device_index=2)
+    call torch_model_load(model_ftorch17, Torchpath17,device_type=torch_kCUDA,device_index=2)
     !Load the Pytorch Model
     Torchpath18 = '/glade/work/wchapman/DA_ML/CESML_AI/Convert_To_Ftorch/UNET_lev_887.0202489197254mb_GPU.pt'
-    model_ftorch18 = torch_module_load(Torchpath18,device_type=torch_kCUDA,device_index=2)
+    call torch_model_load(model_ftorch18, Torchpath18,device_type=torch_kCUDA,device_index=2)
     !Load the Pytorch Model
     Torchpath19 = '/glade/work/wchapman/DA_ML/CESML_AI/Convert_To_Ftorch/UNET_lev_912.644546944648mb_GPU.pt'
-    model_ftorch19 = torch_module_load(Torchpath19,device_type=torch_kCUDA,device_index=2)
+    call torch_model_load(model_ftorch19, Torchpath19,device_type=torch_kCUDA,device_index=2)
     !Load the Pytorch Model
     Torchpath20 = '/glade/work/wchapman/DA_ML/CESML_AI/Convert_To_Ftorch/UNET_lev_936.1983984708786mb_GPU.pt'
-    model_ftorch20 = torch_module_load(Torchpath20,device_type=torch_kCUDA,device_index=2)
+    call torch_model_load(model_ftorch20, Torchpath20,device_type=torch_kCUDA,device_index=2)
     !Load the Pytorch Model
     Torchpath21 = '/glade/work/wchapman/DA_ML/CESML_AI/Convert_To_Ftorch/UNET_lev_957.485479535535mb_GPU.pt'
-    model_ftorch21 = torch_module_load(Torchpath21,device_type=torch_kCUDA,device_index=2)
+    call torch_model_load(model_ftorch21, Torchpath21,device_type=torch_kCUDA,device_index=2)
     !Load the Pytorch Model
     Torchpath22 = '/glade/work/wchapman/DA_ML/CESML_AI/Convert_To_Ftorch/UNET_lev_976.325407391414mb_GPU.pt'
-    model_ftorch22 = torch_module_load(Torchpath22,device_type=torch_kCUDA,device_index=2)
+    call torch_model_load(model_ftorch22, Torchpath22,device_type=torch_kCUDA,device_index=2)
     !Load the Pytorch Model
     Torchpath23 = '/glade/work/wchapman/DA_ML/CESML_AI/Convert_To_Ftorch/UNET_lev_992.556095123291mb_GPU.pt'
-    model_ftorch23 = torch_module_load(Torchpath23,device_type=torch_kCUDA,device_index=2)
+    call torch_model_load(model_ftorch23, Torchpath23,device_type=torch_kCUDA,device_index=2)
     if (masterproc) write(iulog,*) 'CHACHI loaded models'
     end if
     ! Init forcing as zeros:
@@ -457,8 +457,7 @@ contains
     ! Arguments
     !-------------
      !+++ Ftorch tensors
-    type(torch_tensor), dimension(1) :: in_tensor !ftorch
-    type(torch_tensor) :: out_tensor
+    type(torch_tensor), dimension(1) :: in_tensor, out_tensor !ftorch
     !--- Ftorch tensors
     
     !local values:
@@ -1021,8 +1020,8 @@ contains
 
         !model_input_sub_single = real(model_input_sub, r4)
         !in_tensor(1) = torch_tensor_from_array(model_input_sub_single, in_layout, torch_kCUDA,device_index=1)
-        !out_tensor = torch_tensor_from_array(out_data, out_layout, torch_kCPU)
-        !call torch_module_forward(model_ftorch1, in_tensor, n_inputs, out_tensor)
+        !out_tensor(1) = torch_tensor_from_array(out_data, out_layout, torch_kCPU)
+        !call torch_model_forward(model_ftorch1, in_tensor, out_tensor)
         !out_data_double = real(out_data, r8)
         !do ilat=1,cb24cnn_nlat
         !do ilon=1,cb24cnn_nlon
@@ -1031,8 +1030,8 @@ contains
         !  out_for(2,mdo,ilat,ilon) = (windy)*(out_data_double(1,2,ilat,ilon)*std_1(13))+mean_1(13)
         !end do
         !end do
-        !call torch_tensor_delete(in_tensor(1))
-        !call torch_tensor_delete(out_tensor)
+        !call torch_delete(in_tensor)
+        !call torch_delete(out_tensor)
 
         
         !+++++++++++++++++++++++++++++
@@ -1045,8 +1044,8 @@ contains
 
         !model_input_sub_single = real(model_input_sub, r4)
         !in_tensor(1) = torch_tensor_from_array(model_input_sub_single, in_layout, torch_kCUDA,device_index=1)
-        !out_tensor = torch_tensor_from_array(out_data, out_layout, torch_kCPU)
-        !call torch_module_forward(model_ftorch2, in_tensor, n_inputs, out_tensor)
+        !out_tensor(1) = torch_tensor_from_array(out_data, out_layout, torch_kCPU)
+        !call torch_model_forward(model_ftorch2, in_tensor, out_tensor)
         !out_data_double = real(out_data, r8)
         !do ilat=1,cb24cnn_nlat
         !do ilon=1,cb24cnn_nlon
@@ -1055,8 +1054,8 @@ contains
         !  out_for(2,mdo,ilat,ilon) = (windy)*(out_data_double(1,2,ilat,ilon)*std_2(13))+mean_2(13)
         !end do
         !end do
-        !call torch_tensor_delete(in_tensor(1))
-        !call torch_tensor_delete(out_tensor)
+        !call torch_delete(in_tensor)
+        !call torch_delete(out_tensor)
         
         !+++++++++++++++++++++++++++++
         !set all the data for model 3
@@ -1067,9 +1066,9 @@ contains
                                UPWPanal, TBOTanal, PBLHanal, mean_3, std_3, calday, Hour, mdo)
 
         model_input_sub_single = real(model_input_sub, r4)
-        in_tensor(1) = torch_tensor_from_array(model_input_sub_single, in_layout, torch_kCUDA,device_index=1)
-        out_tensor = torch_tensor_from_array(out_data, out_layout, torch_kCPU)
-        call torch_module_forward(model_ftorch3, in_tensor, n_inputs, out_tensor)
+        call torch_tensor_from_array(in_tensor(1), model_input_sub_single, in_layout, torch_kCUDA,device_index=1)
+        call torch_tensor_from_array(out_tensor(1), out_data, out_layout, torch_kCPU)
+        call torch_model_forward(model_ftorch3, in_tensor, out_tensor)
         out_data_double = real(out_data, r8)
         do ilat=1,cb24cnn_nlat
         do ilon=1,cb24cnn_nlon
@@ -1079,8 +1078,8 @@ contains
         end do
         end do
         
-        call torch_tensor_delete(in_tensor(1))
-        call torch_tensor_delete(out_tensor)
+        call torch_delete(in_tensor)
+        call torch_delete(out_tensor)
 
          !+++++++++++++++++++++++++++++
         !set all the data for model 4
@@ -1093,9 +1092,9 @@ contains
         
 
         model_input_sub_single = real(model_input_sub, r4)
-        in_tensor(1) = torch_tensor_from_array(model_input_sub_single, in_layout, torch_kCUDA,device_index=1)
-        out_tensor = torch_tensor_from_array(out_data, out_layout, torch_kCPU)
-        call torch_module_forward(model_ftorch4, in_tensor, n_inputs, out_tensor)
+        call torch_tensor_from_array(in_tensor(1), model_input_sub_single, in_layout, torch_kCUDA,device_index=1)
+        call torch_tensor_from_array(out_tensor(1), out_data, out_layout, torch_kCPU)
+        call torch_model_forward(model_ftorch4, in_tensor, out_tensor)
         out_data_double = real(out_data, r8)
         do ilat=1,cb24cnn_nlat
         do ilon=1,cb24cnn_nlon
@@ -1105,8 +1104,8 @@ contains
         end do
         end do
         
-        call torch_tensor_delete(in_tensor(1))
-        call torch_tensor_delete(out_tensor)
+        call torch_delete(in_tensor)
+        call torch_delete(out_tensor)
 
          !+++++++++++++++++++++++++++++
         !set all the data for model 5
@@ -1117,9 +1116,9 @@ contains
                                UPWPanal, TBOTanal, PBLHanal, mean_5, std_5, calday, Hour, mdo)
 
         model_input_sub_single = real(model_input_sub, r4)
-        in_tensor(1) = torch_tensor_from_array(model_input_sub_single, in_layout, torch_kCUDA,device_index=1)
-        out_tensor = torch_tensor_from_array(out_data, out_layout, torch_kCPU)
-        call torch_module_forward(model_ftorch5, in_tensor, n_inputs, out_tensor)
+        call torch_tensor_from_array(in_tensor(1), model_input_sub_single, in_layout, torch_kCUDA,device_index=1)
+        call torch_tensor_from_array(out_tensor(1), out_data, out_layout, torch_kCPU)
+        call torch_model_forward(model_ftorch5, in_tensor, out_tensor)
         out_data_double = real(out_data, r8)
         do ilat=1,cb24cnn_nlat
         do ilon=1,cb24cnn_nlon
@@ -1129,8 +1128,8 @@ contains
         end do
         end do
         
-        call torch_tensor_delete(in_tensor(1))
-        call torch_tensor_delete(out_tensor)
+        call torch_delete(in_tensor)
+        call torch_delete(out_tensor)
 
          !+++++++++++++++++++++++++++++
         !set all the data for model 6
@@ -1141,9 +1140,9 @@ contains
                                UPWPanal, TBOTanal, PBLHanal, mean_6, std_6, calday, Hour, mdo)
 
         model_input_sub_single = real(model_input_sub, r4)
-        in_tensor(1) = torch_tensor_from_array(model_input_sub_single, in_layout, torch_kCUDA,device_index=1)
-        out_tensor = torch_tensor_from_array(out_data, out_layout, torch_kCPU)
-        call torch_module_forward(model_ftorch6, in_tensor, n_inputs, out_tensor)
+        call torch_tensor_from_array(in_tensor(1), model_input_sub_single, in_layout, torch_kCUDA,device_index=1)
+        call torch_tensor_from_array(out_tensor(1), out_data, out_layout, torch_kCPU)
+        call torch_model_forward(model_ftorch6, in_tensor, out_tensor)
         out_data_double = real(out_data, r8)
         do ilat=1,cb24cnn_nlat
         do ilon=1,cb24cnn_nlon
@@ -1153,8 +1152,8 @@ contains
         end do
         end do
         
-        call torch_tensor_delete(in_tensor(1))
-        call torch_tensor_delete(out_tensor)
+        call torch_delete(in_tensor)
+        call torch_delete(out_tensor)
 
 
          !+++++++++++++++++++++++++++++
@@ -1166,9 +1165,9 @@ contains
                                UPWPanal, TBOTanal, PBLHanal, mean_7, std_7, calday, Hour, mdo)
 
         model_input_sub_single = real(model_input_sub, r4)
-        in_tensor(1) = torch_tensor_from_array(model_input_sub_single, in_layout, torch_kCUDA,device_index=1)
-        out_tensor = torch_tensor_from_array(out_data, out_layout, torch_kCPU)
-        call torch_module_forward(model_ftorch7, in_tensor, n_inputs, out_tensor)
+        call torch_tensor_from_array(in_tensor(1), model_input_sub_single, in_layout, torch_kCUDA,device_index=1)
+        call torch_tensor_from_array(out_tensor(1), out_data, out_layout, torch_kCPU)
+        call torch_model_forward(model_ftorch7, in_tensor, out_tensor)
         out_data_double = real(out_data, r8)
         do ilat=1,cb24cnn_nlat
         do ilon=1,cb24cnn_nlon
@@ -1178,8 +1177,8 @@ contains
         end do
         end do
         
-        call torch_tensor_delete(in_tensor(1))
-        call torch_tensor_delete(out_tensor)
+        call torch_delete(in_tensor)
+        call torch_delete(out_tensor)
 
 
          !+++++++++++++++++++++++++++++
@@ -1191,9 +1190,9 @@ contains
                                UPWPanal, TBOTanal, PBLHanal, mean_8, std_8, calday, Hour, mdo)
 
         model_input_sub_single = real(model_input_sub, r4)
-        in_tensor(1) = torch_tensor_from_array(model_input_sub_single, in_layout, torch_kCUDA,device_index=1)
-        out_tensor = torch_tensor_from_array(out_data, out_layout, torch_kCPU)
-        call torch_module_forward(model_ftorch8, in_tensor, n_inputs, out_tensor)
+        call torch_tensor_from_array(in_tensor(1), model_input_sub_single, in_layout, torch_kCUDA,device_index=1)
+        call torch_tensor_from_array(out_tensor(1), out_data, out_layout, torch_kCPU)
+        call torch_model_forward(model_ftorch8, in_tensor, out_tensor)
         out_data_double = real(out_data, r8)
         do ilat=1,cb24cnn_nlat
         do ilon=1,cb24cnn_nlon
@@ -1203,8 +1202,8 @@ contains
         end do
         end do
         
-        call torch_tensor_delete(in_tensor(1))
-        call torch_tensor_delete(out_tensor)
+        call torch_delete(in_tensor)
+        call torch_delete(out_tensor)
 
 
          !+++++++++++++++++++++++++++++
@@ -1216,9 +1215,9 @@ contains
                                UPWPanal, TBOTanal, PBLHanal, mean_9, std_9, calday, Hour, mdo)
 
         model_input_sub_single = real(model_input_sub, r4)
-        in_tensor(1) = torch_tensor_from_array(model_input_sub_single, in_layout, torch_kCUDA,device_index=1)
-        out_tensor = torch_tensor_from_array(out_data, out_layout, torch_kCPU)
-        call torch_module_forward(model_ftorch9, in_tensor, n_inputs, out_tensor)
+        call torch_tensor_from_array(in_tensor(1), model_input_sub_single, in_layout, torch_kCUDA,device_index=1)
+        call torch_tensor_from_array(out_tensor(1), out_data, out_layout, torch_kCPU)
+        call torch_model_forward(model_ftorch9, in_tensor, out_tensor)
         out_data_double = real(out_data, r8)
         do ilat=1,cb24cnn_nlat
         do ilon=1,cb24cnn_nlon
@@ -1228,8 +1227,8 @@ contains
         end do
         end do
         
-        call torch_tensor_delete(in_tensor(1))
-        call torch_tensor_delete(out_tensor)
+        call torch_delete(in_tensor)
+        call torch_delete(out_tensor)
 
 
          !+++++++++++++++++++++++++++++
@@ -1241,9 +1240,9 @@ contains
                                UPWPanal, TBOTanal, PBLHanal, mean_10, std_10, calday, Hour, mdo)
 
         model_input_sub_single = real(model_input_sub, r4)
-        in_tensor(1) = torch_tensor_from_array(model_input_sub_single, in_layout, torch_kCUDA,device_index=1)
-        out_tensor = torch_tensor_from_array(out_data, out_layout, torch_kCPU)
-        call torch_module_forward(model_ftorch10, in_tensor, n_inputs, out_tensor)
+        call torch_tensor_from_array(in_tensor(1), model_input_sub_single, in_layout, torch_kCUDA,device_index=1)
+        call torch_tensor_from_array(out_tensor(1), out_data, out_layout, torch_kCPU)
+        call torch_model_forward(model_ftorch10, in_tensor, out_tensor)
         out_data_double = real(out_data, r8)
         do ilat=1,cb24cnn_nlat
         do ilon=1,cb24cnn_nlon
@@ -1253,8 +1252,8 @@ contains
         end do
         end do
         
-        call torch_tensor_delete(in_tensor(1))
-        call torch_tensor_delete(out_tensor)
+        call torch_delete(in_tensor)
+        call torch_delete(out_tensor)
 
 
          !+++++++++++++++++++++++++++++
@@ -1266,9 +1265,9 @@ contains
                                UPWPanal, TBOTanal, PBLHanal, mean_11, std_11, calday, Hour, mdo)
 
         model_input_sub_single = real(model_input_sub, r4)
-        in_tensor(1) = torch_tensor_from_array(model_input_sub_single, in_layout, torch_kCUDA,device_index=1)
-        out_tensor = torch_tensor_from_array(out_data, out_layout, torch_kCPU)
-        call torch_module_forward(model_ftorch11, in_tensor, n_inputs, out_tensor)
+        call torch_tensor_from_array(in_tensor(1), model_input_sub_single, in_layout, torch_kCUDA,device_index=1)
+        call torch_tensor_from_array(out_tensor(1), out_data, out_layout, torch_kCPU)
+        call torch_model_forward(model_ftorch11, in_tensor, out_tensor)
         out_data_double = real(out_data, r8)
         do ilat=1,cb24cnn_nlat
         do ilon=1,cb24cnn_nlon
@@ -1278,8 +1277,8 @@ contains
         end do
         end do
         
-        call torch_tensor_delete(in_tensor(1))
-        call torch_tensor_delete(out_tensor)
+        call torch_delete(in_tensor)
+        call torch_delete(out_tensor)
 
 
          !+++++++++++++++++++++++++++++
@@ -1291,9 +1290,9 @@ contains
                                UPWPanal, TBOTanal, PBLHanal, mean_12, std_12, calday, Hour, mdo)
 
         model_input_sub_single = real(model_input_sub, r4)
-        in_tensor(1) = torch_tensor_from_array(model_input_sub_single, in_layout, torch_kCUDA,device_index=1)
-        out_tensor = torch_tensor_from_array(out_data, out_layout, torch_kCPU)
-        call torch_module_forward(model_ftorch12, in_tensor, n_inputs, out_tensor)
+        call torch_tensor_from_array(in_tensor(1), model_input_sub_single, in_layout, torch_kCUDA,device_index=1)
+        call torch_tensor_from_array(out_tensor(1), out_data, out_layout, torch_kCPU)
+        call torch_model_forward(model_ftorch12, in_tensor, out_tensor)
         out_data_double = real(out_data, r8)
         do ilat=1,cb24cnn_nlat
         do ilon=1,cb24cnn_nlon
@@ -1303,8 +1302,8 @@ contains
         end do
         end do
         
-        call torch_tensor_delete(in_tensor(1))
-        call torch_tensor_delete(out_tensor)
+        call torch_delete(in_tensor)
+        call torch_delete(out_tensor)
 
          !+++++++++++++++++++++++++++++
         !set all the data for model 13
@@ -1315,9 +1314,9 @@ contains
                                UPWPanal, TBOTanal, PBLHanal, mean_13, std_13, calday, Hour, mdo)
 
         model_input_sub_single = real(model_input_sub, r4)
-        in_tensor(1) = torch_tensor_from_array(model_input_sub_single, in_layout, torch_kCUDA,device_index=2)
-        out_tensor = torch_tensor_from_array(out_data, out_layout, torch_kCPU)
-        call torch_module_forward(model_ftorch13, in_tensor, n_inputs, out_tensor)
+        call torch_tensor_from_array(in_tensor(1), model_input_sub_single, in_layout, torch_kCUDA,device_index=2)
+        call torch_tensor_from_array(out_tensor(1), out_data, out_layout, torch_kCPU)
+        call torch_model_forward(model_ftorch13, in_tensor, out_tensor)
         out_data_double = real(out_data, r8)
         do ilat=1,cb24cnn_nlat
         do ilon=1,cb24cnn_nlon
@@ -1327,8 +1326,8 @@ contains
         end do
         end do
         
-        call torch_tensor_delete(in_tensor(1))
-        call torch_tensor_delete(out_tensor)
+        call torch_delete(in_tensor)
+        call torch_delete(out_tensor)
 
          !+++++++++++++++++++++++++++++
         !set all the data for model 14
@@ -1339,9 +1338,9 @@ contains
                                UPWPanal, TBOTanal, PBLHanal, mean_14, std_14, calday, Hour, mdo)
 
         model_input_sub_single = real(model_input_sub, r4)
-        in_tensor(1) = torch_tensor_from_array(model_input_sub_single, in_layout, torch_kCUDA,device_index=2)
-        out_tensor = torch_tensor_from_array(out_data, out_layout, torch_kCPU)
-        call torch_module_forward(model_ftorch14, in_tensor, n_inputs, out_tensor)
+        call torch_tensor_from_array(in_tensor(1), model_input_sub_single, in_layout, torch_kCUDA,device_index=2)
+        call torch_tensor_from_array(out_tensor(1), out_data, out_layout, torch_kCPU)
+        call torch_model_forward(model_ftorch14, in_tensor, out_tensor)
         out_data_double = real(out_data, r8)
         do ilat=1,cb24cnn_nlat
         do ilon=1,cb24cnn_nlon
@@ -1351,8 +1350,8 @@ contains
         end do
         end do
         
-        call torch_tensor_delete(in_tensor(1))
-        call torch_tensor_delete(out_tensor)
+        call torch_delete(in_tensor)
+        call torch_delete(out_tensor)
 
          !+++++++++++++++++++++++++++++
         !set all the data for model 15
@@ -1363,9 +1362,9 @@ contains
                                UPWPanal, TBOTanal, PBLHanal, mean_15, std_15, calday, Hour, mdo)
 
         model_input_sub_single = real(model_input_sub, r4)
-        in_tensor(1) = torch_tensor_from_array(model_input_sub_single, in_layout, torch_kCUDA,device_index=2)
-        out_tensor = torch_tensor_from_array(out_data, out_layout, torch_kCPU)
-        call torch_module_forward(model_ftorch15, in_tensor, n_inputs, out_tensor)
+        call torch_tensor_from_array(in_tensor(1), model_input_sub_single, in_layout, torch_kCUDA,device_index=2)
+        call torch_tensor_from_array(out_tensor(1), out_data, out_layout, torch_kCPU)
+        call torch_model_forward(model_ftorch15, in_tensor, out_tensor)
         out_data_double = real(out_data, r8)
         do ilat=1,cb24cnn_nlat
         do ilon=1,cb24cnn_nlon
@@ -1375,8 +1374,8 @@ contains
         end do
         end do
         
-        call torch_tensor_delete(in_tensor(1))
-        call torch_tensor_delete(out_tensor)
+        call torch_delete(in_tensor)
+        call torch_delete(out_tensor)
 
          !+++++++++++++++++++++++++++++
         !set all the data for model 16
@@ -1387,9 +1386,9 @@ contains
                                UPWPanal, TBOTanal, PBLHanal, mean_16, std_16, calday, Hour, mdo)
 
         model_input_sub_single = real(model_input_sub, r4)
-        in_tensor(1) = torch_tensor_from_array(model_input_sub_single, in_layout, torch_kCUDA,device_index=2)
-        out_tensor = torch_tensor_from_array(out_data, out_layout, torch_kCPU)
-        call torch_module_forward(model_ftorch16, in_tensor, n_inputs, out_tensor)
+        call torch_tensor_from_array(in_tensor(1), model_input_sub_single, in_layout, torch_kCUDA,device_index=2)
+        call torch_tensor_from_array(out_tensor(1), out_data, out_layout, torch_kCPU)
+        call torch_model_forward(model_ftorch16, in_tensor, out_tensor)
         out_data_double = real(out_data, r8)
         do ilat=1,cb24cnn_nlat
         do ilon=1,cb24cnn_nlon
@@ -1399,8 +1398,8 @@ contains
         end do
         end do
         
-        call torch_tensor_delete(in_tensor(1))
-        call torch_tensor_delete(out_tensor)
+        call torch_delete(in_tensor)
+        call torch_delete(out_tensor)
 
          !+++++++++++++++++++++++++++++
         !set all the data for model 17
@@ -1411,9 +1410,9 @@ contains
                                UPWPanal, TBOTanal, PBLHanal, mean_17, std_17, calday, Hour, mdo)
 
         model_input_sub_single = real(model_input_sub, r4)
-        in_tensor(1) = torch_tensor_from_array(model_input_sub_single, in_layout, torch_kCUDA,device_index=2)
-        out_tensor = torch_tensor_from_array(out_data, out_layout, torch_kCPU)
-        call torch_module_forward(model_ftorch17, in_tensor, n_inputs, out_tensor)
+        call torch_tensor_from_array(in_tensor(1), model_input_sub_single, in_layout, torch_kCUDA,device_index=2)
+        call torch_tensor_from_array(out_tensor(1), out_data, out_layout, torch_kCPU)
+        call torch_model_forward(model_ftorch17, in_tensor, out_tensor)
         out_data_double = real(out_data, r8)
         do ilat=1,cb24cnn_nlat
         do ilon=1,cb24cnn_nlon
@@ -1423,8 +1422,8 @@ contains
         end do
         end do
         
-        call torch_tensor_delete(in_tensor(1))
-        call torch_tensor_delete(out_tensor)
+        call torch_delete(in_tensor)
+        call torch_delete(out_tensor)
 
          !+++++++++++++++++++++++++++++
         !set all the data for model 18
@@ -1435,9 +1434,9 @@ contains
                                UPWPanal, TBOTanal, PBLHanal, mean_18, std_18, calday, Hour, mdo)
 
         model_input_sub_single = real(model_input_sub, r4)
-        in_tensor(1) = torch_tensor_from_array(model_input_sub_single, in_layout, torch_kCUDA,device_index=2)
-        out_tensor = torch_tensor_from_array(out_data, out_layout, torch_kCPU)
-        call torch_module_forward(model_ftorch18, in_tensor, n_inputs, out_tensor)
+        call torch_tensor_from_array(in_tensor(1), model_input_sub_single, in_layout, torch_kCUDA,device_index=2)
+        call torch_tensor_from_array(out_tensor(1), out_data, out_layout, torch_kCPU)
+        call torch_model_forward(model_ftorch18, in_tensor, out_tensor)
         out_data_double = real(out_data, r8)
         do ilat=1,cb24cnn_nlat
         do ilon=1,cb24cnn_nlon
@@ -1447,8 +1446,8 @@ contains
         end do
         end do
         
-        call torch_tensor_delete(in_tensor(1))
-        call torch_tensor_delete(out_tensor)
+        call torch_delete(in_tensor)
+        call torch_delete(out_tensor)
 
          !+++++++++++++++++++++++++++++
         !set all the data for model 19
@@ -1459,9 +1458,9 @@ contains
                                UPWPanal, TBOTanal, PBLHanal, mean_19, std_19, calday, Hour, mdo)
 
         model_input_sub_single = real(model_input_sub, r4)
-        in_tensor(1) = torch_tensor_from_array(model_input_sub_single, in_layout, torch_kCUDA,device_index=2)
-        out_tensor = torch_tensor_from_array(out_data, out_layout, torch_kCPU)
-        call torch_module_forward(model_ftorch19, in_tensor, n_inputs, out_tensor)
+        call torch_tensor_from_array(in_tensor(1), model_input_sub_single, in_layout, torch_kCUDA,device_index=2)
+        call torch_tensor_from_array(out_tensor(1), out_data, out_layout, torch_kCPU)
+        call torch_model_forward(model_ftorch19, in_tensor, out_tensor)
         out_data_double = real(out_data, r8)
         do ilat=1,cb24cnn_nlat
         do ilon=1,cb24cnn_nlon
@@ -1471,8 +1470,8 @@ contains
         end do
         end do
         
-        call torch_tensor_delete(in_tensor(1))
-        call torch_tensor_delete(out_tensor)
+        call torch_delete(in_tensor)
+        call torch_delete(out_tensor)
 
          !+++++++++++++++++++++++++++++
         !set all the data for model 20
@@ -1483,9 +1482,9 @@ contains
                                UPWPanal, TBOTanal, PBLHanal, mean_20, std_20, calday, Hour, mdo)
 
         model_input_sub_single = real(model_input_sub, r4)
-        in_tensor(1) = torch_tensor_from_array(model_input_sub_single, in_layout, torch_kCUDA,device_index=2)
-        out_tensor = torch_tensor_from_array(out_data, out_layout, torch_kCPU)
-        call torch_module_forward(model_ftorch20, in_tensor, n_inputs, out_tensor)
+        call torch_tensor_from_array(in_tensor(1), model_input_sub_single, in_layout, torch_kCUDA,device_index=2)
+        call torch_tensor_from_array(out_tensor(1), out_data, out_layout, torch_kCPU)
+        call torch_model_forward(model_ftorch20, in_tensor, out_tensor)
         out_data_double = real(out_data, r8)
         do ilat=1,cb24cnn_nlat
         do ilon=1,cb24cnn_nlon
@@ -1495,8 +1494,8 @@ contains
         end do
         end do
         
-        call torch_tensor_delete(in_tensor(1))
-        call torch_tensor_delete(out_tensor)
+        call torch_delete(in_tensor)
+        call torch_delete(out_tensor)
 
          !+++++++++++++++++++++++++++++
         !set all the data for model 21
@@ -1507,9 +1506,9 @@ contains
                                UPWPanal, TBOTanal, PBLHanal, mean_21, std_21, calday, Hour, mdo)
 
         model_input_sub_single = real(model_input_sub, r4)
-        in_tensor(1) = torch_tensor_from_array(model_input_sub_single, in_layout, torch_kCUDA,device_index=2)
-        out_tensor = torch_tensor_from_array(out_data, out_layout, torch_kCPU)
-        call torch_module_forward(model_ftorch21, in_tensor, n_inputs, out_tensor)
+        call torch_tensor_from_array(in_tensor(1), model_input_sub_single, in_layout, torch_kCUDA,device_index=2)
+        call torch_tensor_from_array(out_tensor(1), out_data, out_layout, torch_kCPU)
+        call torch_model_forward(model_ftorch21, in_tensor, out_tensor)
         out_data_double = real(out_data, r8)
         do ilat=1,cb24cnn_nlat
         do ilon=1,cb24cnn_nlon
@@ -1519,8 +1518,8 @@ contains
         end do
         end do
         
-        call torch_tensor_delete(in_tensor(1))
-        call torch_tensor_delete(out_tensor)
+        call torch_delete(in_tensor)
+        call torch_delete(out_tensor)
 
          !+++++++++++++++++++++++++++++
         !set all the data for model 22
@@ -1531,9 +1530,9 @@ contains
                                UPWPanal, TBOTanal, PBLHanal, mean_22, std_22, calday, Hour, mdo)
 
         model_input_sub_single = real(model_input_sub, r4)
-        in_tensor(1) = torch_tensor_from_array(model_input_sub_single, in_layout, torch_kCUDA,device_index=2)
-        out_tensor = torch_tensor_from_array(out_data, out_layout, torch_kCPU)
-        call torch_module_forward(model_ftorch22, in_tensor, n_inputs, out_tensor)
+        call torch_tensor_from_array(in_tensor(1), model_input_sub_single, in_layout, torch_kCUDA,device_index=2)
+        call torch_tensor_from_array(out_tensor(1), out_data, out_layout, torch_kCPU)
+        call torch_model_forward(model_ftorch22, in_tensor, out_tensor)
         out_data_double = real(out_data, r8)
         do ilat=1,cb24cnn_nlat
         do ilon=1,cb24cnn_nlon
@@ -1543,8 +1542,8 @@ contains
         end do
         end do
         
-        call torch_tensor_delete(in_tensor(1))
-        call torch_tensor_delete(out_tensor)
+        call torch_delete(in_tensor)
+        call torch_delete(out_tensor)
 
         !+++++++++++++++++++++++++++++
         !set all the data for model 23
@@ -1555,9 +1554,9 @@ contains
                                UPWPanal, TBOTanal, PBLHanal, mean_23, std_23, calday, Hour, mdo)
 
         model_input_sub_single = real(model_input_sub, r4)
-        in_tensor(1) = torch_tensor_from_array(model_input_sub_single, in_layout, torch_kCUDA,device_index=2)
-        out_tensor = torch_tensor_from_array(out_data, out_layout, torch_kCPU)
-        call torch_module_forward(model_ftorch23, in_tensor, n_inputs, out_tensor)
+        call torch_tensor_from_array(in_tensor(1), model_input_sub_single, in_layout, torch_kCUDA,device_index=2)
+        call torch_tensor_from_array(out_tensor(1), out_data, out_layout, torch_kCPU)
+        call torch_model_forward(model_ftorch23, in_tensor, out_tensor)
         out_data_double = real(out_data, r8)
         do ilat=1,cb24cnn_nlat
         do ilon=1,cb24cnn_nlon
@@ -1567,8 +1566,8 @@ contains
         end do
         end do
         
-        call torch_tensor_delete(in_tensor(1))
-        call torch_tensor_delete(out_tensor)
+        call torch_delete(in_tensor)
+        call torch_delete(out_tensor)
         if (masterproc) write(iulog,*)'cb24cnn_init ending '
         !here we need to do a scatter: 
 
@@ -1804,28 +1803,28 @@ contains
   
   subroutine cb24cnn_finalize()
     ! Cleanup
-    call torch_module_delete(model_ftorch1)
-    call torch_module_delete(model_ftorch2)
-    call torch_module_delete(model_ftorch3)
-    call torch_module_delete(model_ftorch4)
-    call torch_module_delete(model_ftorch5)
-    call torch_module_delete(model_ftorch6)
-    call torch_module_delete(model_ftorch7)
-    call torch_module_delete(model_ftorch8)
-    call torch_module_delete(model_ftorch9)
-    call torch_module_delete(model_ftorch10)
-    call torch_module_delete(model_ftorch11)
-    call torch_module_delete(model_ftorch12)
-    call torch_module_delete(model_ftorch13)
-    call torch_module_delete(model_ftorch14)
-    call torch_module_delete(model_ftorch15)
-    call torch_module_delete(model_ftorch16)
-    call torch_module_delete(model_ftorch17)
-    call torch_module_delete(model_ftorch18)
-    call torch_module_delete(model_ftorch19)
-    call torch_module_delete(model_ftorch20)
-    call torch_module_delete(model_ftorch21)
-    call torch_module_delete(model_ftorch22)
-    call torch_module_delete(model_ftorch23)
+    call torch_delete(model_ftorch1)
+    call torch_delete(model_ftorch2)
+    call torch_delete(model_ftorch3)
+    call torch_delete(model_ftorch4)
+    call torch_delete(model_ftorch5)
+    call torch_delete(model_ftorch6)
+    call torch_delete(model_ftorch7)
+    call torch_delete(model_ftorch8)
+    call torch_delete(model_ftorch9)
+    call torch_delete(model_ftorch10)
+    call torch_delete(model_ftorch11)
+    call torch_delete(model_ftorch12)
+    call torch_delete(model_ftorch13)
+    call torch_delete(model_ftorch14)
+    call torch_delete(model_ftorch15)
+    call torch_delete(model_ftorch16)
+    call torch_delete(model_ftorch17)
+    call torch_delete(model_ftorch18)
+    call torch_delete(model_ftorch19)
+    call torch_delete(model_ftorch20)
+    call torch_delete(model_ftorch21)
+    call torch_delete(model_ftorch22)
+    call torch_delete(model_ftorch23)
   end subroutine cb24cnn_finalize
   end module cb24cnn
