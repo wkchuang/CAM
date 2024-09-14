@@ -18,7 +18,7 @@ use phys_grid,       only: get_lat_p, get_lon_p, get_rlat_p, get_rlon_p
 
 !-------- torch fortran --------
 
-use torch_ftn
+use ftorch
 use iso_fortran_env
 !--------------------------------------
 
@@ -56,7 +56,8 @@ use iso_fortran_env
   logical :: cb_strato_water_constraint = .false. ! zero out cloud (qc and qi) above tropopause in the NN output
   real(r8) :: dtheta_thred = 10.0 ! threshold for determine the tropopause (currently is p<400hPa and dtheta/dz>dtheta_thred = 10K/km) 
 
-  type(torch_module), allocatable :: torch_mod(:)
+  ! Removed allocatable because this will only hold a single model
+  type(torch_model) :: torch_mod !wkc
 
   ! local
   logical :: cb_top_levels_zero_out = .true.
@@ -73,7 +74,7 @@ contains
 
 #ifdef MMF_NN_EMULATOR
   subroutine neural_net (ptend, state, state_aphys1, pbuf, cam_in, cam_out, coszrs, solin, ztodt, lchnk)
- ! note state is meant to have the "BP" state saved earlier. 
+   ! note state is meant to have the "BP" state saved earlier. 
 
    implicit none
 
@@ -106,14 +107,16 @@ contains
    real(r8), pointer, dimension(:)   :: lhflx, shflx, taux, tauy ! (/pcols/)
    real(r8), pointer, dimension(:,:) :: ozone, ch4, n2o ! (/pcols,pver/)
 
-  !  type(torch_module) :: torch_mod
-   type(torch_tensor_wrap) :: input_tensors
-   type(torch_tensor) :: out_tensor
+   ! wkc originally the input tensors are a wrapped type.
+   ! We don't have wrapped tensors in FTorch. What is its corresponding object?
+   ! Do we need to pass it in as a variable?
+   ! wkc type(torch_tensor_wrap) :: input_tensors
+   type(torch_tensor), dimension(1) :: input_tensor, out_tensor !wkc same as torchftn
    real(real32) :: input_torch(inputlength, pcols)
    real(real32), pointer :: output_torch(:, :)
    real(r8) :: math_pi
 
-   math_pi = 3.14159265358979323846_r8
+   math_pi = 3.14159265358979323846_r8 ! To be changed to CESM constants
 
    ncol  = state%ncol
    call cnst_get_ind('CLDLIQ', ixcldliq)
@@ -269,7 +272,8 @@ select case (to_lower(trim(cb_nn_var_combo)))
 end select
 
 
-    ! do the torch inference    
+    ! do the torch inference
+    ! Flip the indices because (I think) Fortran handles tensor indices differently compared to Python  
     input_torch(:,:) = 0.
     do i=1,ncol
       do k=1,inputlength
@@ -277,11 +281,25 @@ end select
       end do
     end do
     !print *, "Creating input tensor"
-    call input_tensors%create
+    ! Change this to accommodate FTorch tensors
+    ! call input_tensors%create
     !print *, "Adding input data"
-    call input_tensors%add_array(input_torch)
-    call torch_mod(1)%forward(input_tensors, out_tensor, flags=module_use_inference_mode)
-    call out_tensor%to_array(output_torch)
+    ! Adds all the inputs to the input tensor wrapper
+    ! call input_tensors%add_array(input_torch) ! torch_ftna
+    call torch_tensor_from_array(in_tensor(1), input,  in_layout, torch_kCPU) ! Ftorch
+
+    ! Set the out_tensor before moving forward one time step
+    call torch_tensor_from_array(out_tensor(1), out_data, out_layout, torch_kCPU) 
+
+    ! call torch_mod(1)%forward(input_tensors, out_tensor, flags=module_use_inference_mode)
+    if (masterproc) write(iulog,*) 'Calling Ftorch!' !ftorch
+    print *, "Calling FTorch!"
+    call torch_model_forward(model_pytorch, in_tensor, n_inputs, out_tensor) ! Ftorch
+
+    ! Torch_ftn, changes tensor to array 
+    ! call out_tensor%to_array(output_torch)
+
+    ! Reversing the order from python to fortran
     do i=1, ncol
       do k=1,outputlength
         output(i,k) = output_torch(k,i)
@@ -426,24 +444,28 @@ end subroutine neural_net
 
 #ifdef MMF_NN_EMULATOR
   subroutine init_neural_net()
+    !!! Allocate space for neural network values
 
     implicit none
 
-    integer :: i, k
+    integer :: i, k ! Why are these values here? They appear unused
 
-    allocate(torch_mod (1))
-    call torch_mod(1)%load(trim(cb_torch_model), 0) !0 is not using gpu, for now just use cpu for NN inference
-    !call torch_mod(1)%load(trim(cb_torch_model), module_use_device) will use gpu if available
+    allocate(torch_mod(1))
+
+    !wkc Will have to return to this for CPU/GPU assessment 
+    model_pytorch = torch_model_load(trim(cb_torch_model)) 
+
     
-  ! add diagnostic output fileds
-  call addfld ('TROP_IND',horiz_only,   'A', '1', 'lev index for tropopause')
+    ! add diagnostic output files
+    ! Called from cam_history
+    call addfld ('TROP_IND',horiz_only,   'A', '1', 'lev index for tropopause')
 
   end subroutine init_neural_net
 #endif
 
   real(r8) function tom_esat(T) 
-  ! For consistency with the python port of Tom's RH-calculator, this is how it
-  ! was done in the training environment (Caution: could be porting bugs here)
+    ! For consistency with the python port of Tom's RH-calculator, this is how it
+    ! was done in the training environment (Caution: could be porting bugs here)
     implicit none
     real(r8) T
     real(r8), parameter :: T0 = 273.16
@@ -452,7 +474,7 @@ end subroutine neural_net
     real(r8) :: omtmp,omega
     omtmp = (T-T00)/(T0-T00)
     omega = max(0.,min(1.,omtmp))
-!tf.where(T>T0,eliq(T),tf.where(T<T00,eice(T),(omega*eliq(T)+(1-omega)*eice(T))))
+    !tf.where(T>T0,eliq(T),tf.where(T<T00,eice(T),(omega*eliq(T)+(1-omega)*eice(T))))
     if (T .gt. T0) then
       tom_esat = tom_eliq(T)
     elseif (T .lt. T00) then
