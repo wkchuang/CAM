@@ -286,7 +286,7 @@ end select
     !print *, "Adding input data"
     ! Adds all the inputs to the input tensor wrapper
     ! call input_tensors%add_array(input_torch) ! torch_ftna
-    call torch_tensor_from_array(in_tensor(1), input,  in_layout, torch_kCPU) ! Ftorch
+    call torch_tensor_from_array(in_tensor(1), input_torch,  in_layout, torch_kCPU) ! Ftorch
 
     ! Set the out_tensor before moving forward one time step
     call torch_tensor_from_array(out_tensor(1), out_data, out_layout, torch_kCPU) 
