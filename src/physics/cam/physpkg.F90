@@ -59,7 +59,9 @@ module physpkg
   public phys_run1   ! First phase of the public run method
   public phys_run2   ! Second phase of the public run method
   public phys_final  ! Public finalization method
-
+#ifdef MMF_NN_EMULATOR
+  public mmf_nn_emulator_driver ! MMF_NN_EMULATOR NN-emulation driver
+#endif
   ! Private module data
 
   ! Physics package options
@@ -954,209 +956,209 @@ contains
     !call cb24mjocnn_init
     call cb24cnn_init
 
-  #ifdef MMF_NN_EMULATOR
-    call init_neural_net()
-  #endif
+#ifdef MMF_NN_EMULATOR
+  call init_neural_net()
+#endif
 
   end subroutine phys_init
 
-  !=======================================================================
-  !=======================================================================
-  #ifdef MMF_NN_EMULATOR
-subroutine mmf_nn_emulator_driver(phys_state, phys_state_aphys1, phys_state_mmf, ztodt, phys_tend, pbuf2d,  cam_in, cam_out, cam_out_mmf)
-  !-----------------------------------------------------------------------------
-  ! Purpose: mmf_nn_emulator driver
-  !-----------------------------------------------------------------------------
-  use mmf_nn_emulator,          only: cb_partial_coupling, cb_partial_coupling_vars, cb_spinup_step, cb_do_ramp, cb_ramp_linear_steps, &
-                              cb_ramp_option, cb_ramp_factor, cb_ramp_step_0steps, cb_ramp_step_1steps
-  use physics_buffer,   only: physics_buffer_desc, pbuf_get_chunk, &
-                              pbuf_allocate, pbuf_get_index, pbuf_get_field
-  use time_manager,     only: get_nstep, get_step_size, & 
-                              is_first_step,  is_first_restart_step, &
-                              get_curr_calday
-  use cam_diagnostics,  only: diag_allocate, &
-                              diag_mmf_nn_emulator_debug
-  use radiation,        only: iradsw, use_rad_dt_cosz 
-  use radconstants,     only: nswbands, get_ref_solar_band_irrad
-  use rad_solar_var,    only: get_variability
-  use orbit,            only: zenith
-  use shr_orb_mod,      only: shr_orb_decl
-  use phys_grid,        only: get_rlat_all_p, get_rlon_all_p
-  use cam_control_mod,  only: lambm0, obliqr, eccen, mvelpp
-  use tropopause,       only: tropopause_output
-  use camsrfexch,       only: cam_export
-  use cam_diagnostics,  only: diag_export
-  use geopotential,        only: geopotential_t
-  use cam_history_support, only: pflds
-  use physconst,        only: cpair, zvir, rair, gravit
-  use string_utils,    only: to_lower
-  use cam_diagnostics,        only: diag_phys_writeout, diag_conv
-  use cloud_diagnostics,      only: cloud_diagnostics_calc
+!===================================================================================================
+!===================================================================================================
+#ifdef MMF_NN_EMULATOR
+  subroutine mmf_nn_emulator_driver(phys_state, phys_state_aphys1, phys_state_mmf, ztodt, phys_tend, pbuf2d,  cam_in, cam_out, cam_out_mmf)
+    !-----------------------------------------------------------------------------
+    ! Purpose: mmf_nn_emulator driver
+    !-----------------------------------------------------------------------------
+    use mmf_nn_emulator,          only: cb_partial_coupling, cb_partial_coupling_vars, cb_spinup_step, cb_do_ramp, cb_ramp_linear_steps, &
+                                        cb_ramp_option, cb_ramp_factor, cb_ramp_step_0steps, cb_ramp_step_1steps
+    use physics_buffer,   only: physics_buffer_desc, pbuf_get_chunk, &
+                                pbuf_allocate, pbuf_get_index, pbuf_get_field
+    use time_manager,     only: get_nstep, get_step_size, & 
+                                is_first_step,  is_first_restart_step, &
+                                get_curr_calday
+    use cam_diagnostics,  only: diag_allocate, &
+                                diag_mmf_nn_emulator_debug
+    use radiation,        only: iradsw, use_rad_dt_cosz 
+    use radconstants,     only: nswbands, get_ref_solar_band_irrad
+    use rad_solar_var,    only: get_variability
+    use orbit,            only: zenith
+    use shr_orb_mod,      only: shr_orb_decl
+    use phys_grid,        only: get_rlat_all_p, get_rlon_all_p
+    use cam_control_mod,  only: lambm0, obliqr, eccen, mvelpp
+    use tropopause,       only: tropopause_output
+    use camsrfexch,       only: cam_export
+    use cam_diagnostics,  only: diag_export
+    use geopotential,        only: geopotential_t
+    use cam_history_support, only: pflds
+    use physconst,        only: cpair, zvir, rair, gravit
+    use string_utils,    only: to_lower
+    use cam_diagnostics,        only: diag_phys_writeout, diag_conv
+    use cloud_diagnostics,      only: cloud_diagnostics_calc
 
-  !-----------------------------------------------------------------------------
-  ! Interface arguments
-  !-----------------------------------------------------------------------------
-  real(r8), intent(in) :: ztodt            ! physics time step unless nstep=0
-  type(physics_state), intent(inout), dimension(begchunk:endchunk) :: phys_state
-  type(physics_state), intent(in),    dimension(begchunk:endchunk) :: phys_state_aphys1
-  type(physics_state), intent(inout),    dimension(begchunk:endchunk) :: phys_state_mmf
-  type(physics_tend ), intent(inout), dimension(begchunk:endchunk) :: phys_tend
-  type(physics_buffer_desc), pointer, dimension(:,:)               :: pbuf2d
-  type(cam_in_t),                     dimension(begchunk:endchunk) :: cam_in
-  type(cam_out_t),                    dimension(begchunk:endchunk) :: cam_out
-  type(cam_out_t),      intent(out),      dimension(begchunk:endchunk) :: cam_out_mmf
+    !-----------------------------------------------------------------------------
+    ! Interface arguments
+    !-----------------------------------------------------------------------------
+    real(r8), intent(in) :: ztodt            ! physics time step unless nstep=0
+    type(physics_state), intent(inout), dimension(begchunk:endchunk) :: phys_state
+    type(physics_state), intent(in),    dimension(begchunk:endchunk) :: phys_state_aphys1
+    type(physics_state), intent(inout),    dimension(begchunk:endchunk) :: phys_state_mmf
+    type(physics_tend ), intent(inout), dimension(begchunk:endchunk) :: phys_tend
+    type(physics_buffer_desc), pointer, dimension(:,:)               :: pbuf2d
+    type(cam_in_t),                     dimension(begchunk:endchunk) :: cam_in
+    type(cam_out_t),                    dimension(begchunk:endchunk) :: cam_out
+    type(cam_out_t),      intent(out),      dimension(begchunk:endchunk) :: cam_out_mmf
 
-  !-----------------------------------------------------------------------------
-  ! Local Variables
-  !-----------------------------------------------------------------------------
-  integer :: lchnk                             ! chunk identifier
-  integer :: ncol                              ! number of columns
-  integer :: nstep                             ! current timestep number
-  type(physics_buffer_desc), pointer :: phys_buffer_chunk(:)
+    !-----------------------------------------------------------------------------
+    ! Local Variables
+    !-----------------------------------------------------------------------------
+    integer :: lchnk                             ! chunk identifier
+    integer :: ncol                              ! number of columns
+    integer :: nstep                             ! current timestep number
+    type(physics_buffer_desc), pointer :: phys_buffer_chunk(:)
 
-  ! stuff for calling crm_physics_tend
-  logical           :: use_ECPP
-  type(physics_ptend), dimension(begchunk:endchunk) :: ptend ! indivdual parameterization tendencies
+    ! stuff for calling crm_physics_tend
+    logical           :: use_ECPP
+    type(physics_ptend), dimension(begchunk:endchunk) :: ptend ! indivdual parameterization tendencies
 
-  integer  :: itim_old, cldo_idx, cld_idx   ! pbuf indices
-  real(r8), pointer, dimension(:,:) :: cld  ! cloud fraction
-  real(r8), pointer, dimension(:,:) :: cldo ! old cloud fraction
-  !-----------------------------------------------------------------------------
+    integer  :: itim_old, cldo_idx, cld_idx   ! pbuf indices
+    real(r8), pointer, dimension(:,:) :: cld  ! cloud fraction
+    real(r8), pointer, dimension(:,:) :: cldo ! old cloud fraction
+    !-----------------------------------------------------------------------------
 
-  !-----------------------------------------------------------------------------
-  ! Local Variables (for MMF_NN_EMULATOR)
-  !-----------------------------------------------------------------------------
-  integer :: c, i, j, k 
-  integer, save :: nstep0
-  integer       :: nstep_NN, dtime
-  logical :: do_mmf_nn_emulator_inference = .false.
+    !-----------------------------------------------------------------------------
+    ! Local Variables (for MMF_NN_EMULATOR)
+    !-----------------------------------------------------------------------------
+    integer :: c, i, j, k 
+    integer, save :: nstep0
+    integer       :: nstep_NN, dtime
+    logical :: do_mmf_nn_emulator_inference = .false.
 
-  ! - for partial coupling - !
-! type(physics_state), dimension(begchunk:endchunk)  :: phys_state_nn
-  ! type(physics_state), dimension(begchunk:endchunk)  :: phys_state_mmf_backup
-  ! type(physics_tend ), dimension(begchunk:endchunk)  :: phys_tend_nn
+    ! - for partial coupling - !
+    ! type(physics_state), dimension(begchunk:endchunk)  :: phys_state_nn
+    ! type(physics_state), dimension(begchunk:endchunk)  :: phys_state_mmf_backup
+    ! type(physics_tend ), dimension(begchunk:endchunk)  :: phys_tend_nn
 
-  type(physics_state), allocatable, dimension(:)  :: phys_state_nn
-  type(physics_state), allocatable, dimension(:)  :: phys_state_mmf_backup
-  type(physics_tend ), allocatable, dimension(:)  :: phys_tend_nn
-  type(cam_out_t),     dimension(begchunk:endchunk)  :: cam_out_nn
-  integer :: ixcldice, ixcldliq
-  integer :: prec_dp_idx, snow_dp_idx
-  real(r8), dimension(:), pointer              :: prec_dp    , snow_dp
-  real(r8), dimension(pcols,begchunk:endchunk) :: prec_dp_nn , snow_dp_nn, &
+    type(physics_state), allocatable, dimension(:)  :: phys_state_nn
+    type(physics_state), allocatable, dimension(:)  :: phys_state_mmf_backup
+    type(physics_tend ), allocatable, dimension(:)  :: phys_tend_nn
+    type(cam_out_t),     dimension(begchunk:endchunk)  :: cam_out_nn
+    integer :: ixcldice, ixcldliq
+    integer :: prec_dp_idx, snow_dp_idx
+    real(r8), dimension(:), pointer              :: prec_dp    , snow_dp
+    real(r8), dimension(pcols,begchunk:endchunk) :: prec_dp_nn , snow_dp_nn, &
                                                   prec_dp_mmf, snow_dp_mmf
-  logical  :: do_geopotential = .false.
-  real(r8) :: zvirv_loc(pcols,pver), rairv_loc(pcols,pver)  
-  real(r8) :: ramp_ratio 
-  ! - !
+    logical  :: do_geopotential = .false.
+    real(r8) :: zvirv_loc(pcols,pver), rairv_loc(pcols,pver)  
+    real(r8) :: ramp_ratio 
+    ! - !
 
-  real(r8) :: calday       ! current calendar day
-  real(r8) :: clat(pcols)  ! current latitudes(radians)
-  real(r8) :: clon(pcols)  ! current longitudes(radians)
-  real(r8), dimension(pcols,begchunk:endchunk) :: coszrs  ! Cosine solar zenith angle
-  real(r8), dimension(pcols,begchunk:endchunk) :: solin   ! Insolation
+    real(r8) :: calday       ! current calendar day
+    real(r8) :: clat(pcols)  ! current latitudes(radians)
+    real(r8) :: clon(pcols)  ! current longitudes(radians)
+    real(r8), dimension(pcols,begchunk:endchunk) :: coszrs  ! Cosine solar zenith angle
+    real(r8), dimension(pcols,begchunk:endchunk) :: solin   ! Insolation
 
-  real(r8) :: sfac(1:nswbands)  ! time varying scaling factors due to Solar Spectral Irrad at 1 A.U. per band
-  real(r8) :: solar_band_irrad(1:nswbands) ! rrtmg-assumed solar irradiance in each sw band
-  real(r8) :: dt_avg = 0.0_r8   ! time step to use for the shr_orb_cosz calculation, if use_rad_dt_cosz set to true
-  real(r8) :: delta    ! Solar declination angle  in radians
-  real(r8) :: eccf     ! Earth orbit eccentricity factor
-  integer :: ierr=0
-!-----------------------------------------------------------------------------
-  ! phys_run1 opening
-  ! - phys_timestep_init advances ghg gases,
-  ! - need to advance solar insolation (for NN)
-  !-----------------------------------------------------------------------------
+    real(r8) :: sfac(1:nswbands)  ! time varying scaling factors due to Solar Spectral Irrad at 1 A.U. per band
+    real(r8) :: solar_band_irrad(1:nswbands) ! rrtmg-assumed solar irradiance in each sw band
+    real(r8) :: dt_avg = 0.0_r8   ! time step to use for the shr_orb_cosz calculation, if use_rad_dt_cosz set to true
+    real(r8) :: delta    ! Solar declination angle  in radians
+    real(r8) :: eccf     ! Earth orbit eccentricity factor
+    integer :: ierr=0
+    !-----------------------------------------------------------------------------
+    ! phys_run1 opening
+    ! - phys_timestep_init advances ghg gases,
+    ! - need to advance solar insolation (for NN)
+    !-----------------------------------------------------------------------------
 
 
-  allocate(phys_state_nn(begchunk:endchunk), stat=ierr)
-   if (ierr /= 0) then
-      ! Handle allocation error
-      write(iulog,*) 'Error allocating phys_state_nn error = ',ierr
-   end if
-
-   allocate(phys_state_mmf_backup(begchunk:endchunk), stat=ierr)
-   if (ierr /= 0) then
-      ! Handle allocation error
-      write(iulog,*) 'Error allocating phys_state_mmf_backup error = ',ierr
-   end if
-
-   allocate(phys_tend_nn(begchunk:endchunk), stat=ierr)
+    allocate(phys_state_nn(begchunk:endchunk), stat=ierr)
     if (ierr /= 0) then
-        ! Handle allocation error
-        write(iulog,*) 'Error allocating phys_tend_nn error = ',ierr
+       ! Handle allocation error
+       write(iulog,*) 'Error allocating phys_state_nn error = ',ierr
+    end if
+
+    allocate(phys_state_mmf_backup(begchunk:endchunk), stat=ierr)
+    if (ierr /= 0) then
+       ! Handle allocation error
+       write(iulog,*) 'Error allocating phys_state_mmf_backup error = ',ierr
+    end if
+
+    allocate(phys_tend_nn(begchunk:endchunk), stat=ierr)
+    if (ierr /= 0) then
+       ! Handle allocation error
+       write(iulog,*) 'Error allocating phys_tend_nn error = ',ierr
     end if
 
     do lchnk=begchunk,endchunk
-      call physics_state_alloc(phys_state_nn(lchnk),lchnk,pcols)
-      call physics_state_alloc(phys_state_mmf_backup(lchnk),lchnk,pcols)
-      ! call physics_tend_alloc(phys_tend_nn(lchnk),lchnk,pcols)
-   end do
+       call physics_state_alloc(phys_state_nn(lchnk),lchnk,pcols)
+       call physics_state_alloc(phys_state_mmf_backup(lchnk),lchnk,pcols)
+       ! call physics_tend_alloc(phys_tend_nn(lchnk),lchnk,pcols)
+    end do
 
-   do lchnk=begchunk,endchunk
-      call physics_tend_alloc(phys_tend_nn(lchnk),phys_state_nn(lchnk)%psetcols)
-   end do
+    do lchnk=begchunk,endchunk
+       call physics_tend_alloc(phys_tend_nn(lchnk),phys_state_nn(lchnk)%psetcols)
+    end do
 
-  nstep = get_nstep()
-  dtime = get_step_size()
+    nstep = get_nstep()
+    dtime = get_step_size()
 
-  call pbuf_allocate(pbuf2d, 'physpkg')
-  call diag_allocate()
+    call pbuf_allocate(pbuf2d, 'physpkg')
+    call diag_allocate()
 
-  ! Advance time information
-  call t_startf ('phys_timestep_init')
-  call phys_timestep_init( phys_state, cam_out, pbuf2d)
-  call t_stopf ('phys_timestep_init')
+    ! Advance time information
+    call t_startf ('phys_timestep_init')
+    call phys_timestep_init( phys_state, cam_out, pbuf2d)
+    call t_stopf ('phys_timestep_init')
 
-  ! Calculate  COSZRS and SOLIN
-  call get_ref_solar_band_irrad( solar_band_irrad ) ! this can move to init subroutine
-  call get_variability(sfac)                        ! "
-  do lchnk=begchunk,endchunk
-     ncol = phys_state(lchnk)%ncol
-     calday = get_curr_calday(-dtime) ! get current calendar day with a negative offset to match the time in mli and CRM physics
-     ! coszrs
-     call get_rlat_all_p(lchnk, ncol, clat)
-     call get_rlon_all_p(lchnk, ncol, clon)
-     if (use_rad_dt_cosz)  then
-        dtime  = get_step_size()
-        dt_avg = iradsw*dtime
-     end if
-     call zenith(calday, clat, clon, coszrs(:,lchnk), ncol, dt_avg)
-     ! solin
-     call shr_orb_decl(calday  ,eccen     ,mvelpp  ,lambm0  ,obliqr  , &
-                       delta   ,eccf      )
-     solin(:,lchnk) = sum(sfac(:)*solar_band_irrad(:)) * eccf * coszrs(:,lchnk)
-  end do
-  ! [TO-DO] Check solin and coszrs from this calculation vs. pbuf_XXX
+    ! Calculate  COSZRS and SOLIN
+    call get_ref_solar_band_irrad( solar_band_irrad ) ! this can move to init subroutine
+    call get_variability(sfac)                        ! "
+    do lchnk=begchunk,endchunk
+       ncol = phys_state(lchnk)%ncol
+       calday = get_curr_calday(-dtime) ! get current calendar day with a negative offset to match the time in mli and CRM physics
+       ! coszrs
+       call get_rlat_all_p(lchnk, ncol, clat)
+       call get_rlon_all_p(lchnk, ncol, clon)
+       if (use_rad_dt_cosz)  then
+         dtime  = get_step_size()
+         dt_avg = iradsw*dtime
+       end if
+       call zenith(calday, clat, clon, coszrs(:,lchnk), ncol, dt_avg)
+       ! solin
+       call shr_orb_decl(calday  ,eccen     ,mvelpp  ,lambm0  ,obliqr  , &
+                         delta   ,eccf      )
+       solin(:,lchnk) = sum(sfac(:)*solar_band_irrad(:)) * eccf * coszrs(:,lchnk)
+    end do
+    ! [TO-DO] Check solin and coszrs from this calculation vs. pbuf_XXX
 
-  prec_dp_idx = pbuf_get_index('PREC_DP', errcode=i) ! Query physics buffer index
-  snow_dp_idx = pbuf_get_index('SNOW_DP', errcode=i)
+    prec_dp_idx = pbuf_get_index('PREC_DP', errcode=i) ! Query physics buffer index
+    snow_dp_idx = pbuf_get_index('SNOW_DP', errcode=i)
 
-  !-----------------------------------------------------------------------------
-  ! phys_run1 main
-  !-----------------------------------------------------------------------------
+    !-----------------------------------------------------------------------------
+    ! phys_run1 main
+    !-----------------------------------------------------------------------------
 
-  ! Call init subroutine for neural networks
-  ! (loading neural network weights and normalization factors)
-  if (is_first_step() .or. is_first_restart_step()) then
-      ! call init_neural_net()
-     nstep0 = nstep
-  end if
+    ! Call init subroutine for neural networks
+    ! (loading neural network weights and normalization factors)
+    if (is_first_step() .or. is_first_restart_step()) then
+       ! call init_neural_net()
+       nstep0 = nstep
+    end if
 
-  ! Determine if MMF spin-up perioid is over
-  ! (currently spin up time is set at 86400 sec ~ 1 day)
-  ! [TO-DO] create a namelist variable for mmf spin-up time
-  ! nstep_NN = 86400 / get_step_size()
-  nstep_NN = cb_spinup_step
+    ! Determine if MMF spin-up perioid is over
+    ! (currently spin up time is set at 86400 sec ~ 1 day)
+    ! [TO-DO] create a namelist variable for mmf spin-up time
+    ! nstep_NN = 86400 / get_step_size()
+    nstep_NN = cb_spinup_step
 
-  if (nstep-nstep0 .eq. nstep_NN) then
-     do_mmf_nn_emulator_inference = .true.
-     if (masterproc) then
-        write(iulog,*) '---------------------------------------'
-        write(iulog,*) '[MMF_NN_EMULATOR] NN coupling starts'
-        write(iulog,*) '---------------------------------------'
-     end if
-  end if
+    if (nstep-nstep0 .eq. nstep_NN) then
+       do_mmf_nn_emulator_inference = .true.
+       if (masterproc) then
+          write(iulog,*) '---------------------------------------'
+          write(iulog,*) '[MMF_NN_EMULATOR] NN coupling starts'
+          write(iulog,*) '---------------------------------------'
+       end if
+    end if
 
 #ifdef MMF_NN_EMULATORDEBUG
   if (masterproc) then
@@ -1165,162 +1167,162 @@ subroutine mmf_nn_emulator_driver(phys_state, phys_state_aphys1, phys_state_mmf,
 #endif
 
   !Save original values of subroutine arguments
-  if (do_mmf_nn_emulator_inference .and. cb_partial_coupling) then
-     do lchnk = begchunk, endchunk
-      ! since phys_state_mmf_backup etc is just allocated but have not been initialized (empty), doing this copy won't lead to memory leak
-        phys_state_nn(lchnk) = phys_state(lchnk) 
-        phys_state_mmf_backup(lchnk) = phys_state_mmf(lchnk)
-        phys_tend_nn(lchnk)  = phys_tend(lchnk) 
-        cam_out_nn(lchnk)    = cam_out(lchnk) 
-     end do
-  end if
+    if (do_mmf_nn_emulator_inference .and. cb_partial_coupling) then
+       do lchnk = begchunk, endchunk
+          ! since phys_state_mmf_backup etc is just allocated but have not been initialized (empty), doing this copy won't lead to memory leak
+          phys_state_nn(lchnk) = phys_state(lchnk) 
+          phys_state_mmf_backup(lchnk) = phys_state_mmf(lchnk)
+          phys_tend_nn(lchnk)  = phys_tend(lchnk) 
+          cam_out_nn(lchnk)    = cam_out(lchnk) 
+       end do
+    end if
 
-  ! Run phys_run1 physics
-  if (.not. do_mmf_nn_emulator_inference) then  ! MMFspin-up
-     call phys_run1(phys_state, ztodt, phys_tend, pbuf2d,  cam_in, cam_out)
-     do lchnk = begchunk, endchunk
-        call physics_state_dealloc(phys_state_mmf(lchnk)) ! to prevent memory leak
-        call physics_state_copy(phys_state(lchnk), phys_state_mmf(lchnk))
-        cam_out_mmf(lchnk)    = cam_out(lchnk)
-     end do
-
-  else  ! NN inference
-     if (cb_partial_coupling) then ! NN partial coupling
-
-        call phys_run1   (phys_state,    ztodt, phys_tend,    pbuf2d, cam_in, cam_out)
-        ! store mmf calculation of prec_dp and snow_dp
-        do lchnk = begchunk, endchunk
-           phys_buffer_chunk => pbuf_get_chunk(pbuf2d, lchnk)
-           call pbuf_get_field(phys_buffer_chunk, prec_dp_idx, prec_dp)
-           call pbuf_get_field(phys_buffer_chunk, snow_dp_idx, snow_dp)
-           prec_dp_mmf(:,lchnk) = prec_dp(:) 
-           snow_dp_mmf(:,lchnk) = snow_dp(:)
-        end do
-
-        do lchnk = begchunk, endchunk
-          ! update phys_state_mmf but cannot overwrite its the mmf adv and phy history
-          call physics_state_dealloc(phys_state_mmf(lchnk))
-          call physics_state_copy(phys_state(lchnk), phys_state_mmf(lchnk))
-          phys_state_mmf(lchnk)%t_adv(:,:,:) = phys_state_mmf_backup(lchnk)%t_adv(:,:,:)
-          phys_state_mmf(lchnk)%u_adv(:,:,:) = phys_state_mmf_backup(lchnk)%u_adv(:,:,:)
-          phys_state_mmf(lchnk)%t_phy(:,:,:) = phys_state_mmf_backup(lchnk)%t_phy(:,:,:)
-          phys_state_mmf(lchnk)%u_phy(:,:,:) = phys_state_mmf_backup(lchnk)%u_phy(:,:,:)
-          phys_state_mmf(lchnk)%q_adv(:,:,:,:) = phys_state_mmf_backup(lchnk)%q_adv(:,:,:,:)
-          phys_state_mmf(lchnk)%q_phy(:,:,:,:) = phys_state_mmf_backup(lchnk)%q_phy(:,:,:,:)
-          cam_out_mmf(lchnk) = cam_out(lchnk)
-        end do
-
-        call phys_run1_NN(phys_state_nn, phys_state_aphys1, ztodt, phys_tend_nn, pbuf2d, cam_in, cam_out_nn,&
-                          solin, coszrs)
-        ! store nn calculation of prec_dp and snow_dp
-        do lchnk = begchunk, endchunk
-           phys_buffer_chunk => pbuf_get_chunk(pbuf2d, lchnk)
-           call pbuf_get_field(phys_buffer_chunk, prec_dp_idx, prec_dp)
-           call pbuf_get_field(phys_buffer_chunk, snow_dp_idx, snow_dp)
-           prec_dp_nn(:,lchnk) = prec_dp(:)
-           snow_dp_nn(:,lchnk) = snow_dp(:)
-           prec_dp(:) = prec_dp_mmf(:,lchnk) ! restored to mmf calculation
-           snow_dp(:) = snow_dp_mmf(:,lchnk) ! (prep for cb_partial_coupling)
-        end do
-
-     else ! NN full coupling
-        call phys_run1_NN(phys_state, phys_state_aphys1, ztodt, phys_tend, pbuf2d,  cam_in, cam_out,&
-                          solin, coszrs)
-        do lchnk = begchunk, endchunk
-          ! in fully nn coupling case (no partial coupling), phys_state_mmf is just synced with phys_state but won't be used
-          call physics_state_dealloc(phys_state_mmf(lchnk))
+    ! Run phys_run1 physics
+    if (.not. do_mmf_nn_emulator_inference) then  ! MMFspin-up
+       call phys_run1(phys_state, ztodt, phys_tend, pbuf2d,  cam_in, cam_out)
+       do lchnk = begchunk, endchunk
+          call physics_state_dealloc(phys_state_mmf(lchnk)) ! to prevent memory leak
           call physics_state_copy(phys_state(lchnk), phys_state_mmf(lchnk))
           cam_out_mmf(lchnk)    = cam_out(lchnk)
-        end do
-     end if ! (cb_partial_coupling)
-  end if ! (.not. do_mmf_nn_emulator_inference)
+       end do
 
-  ! Partial coupling
-  ! NN calculations overide MMF calculations for any variables included in 'cb_partial_coupling_vars'
-  ! e.g., [ 'ptend_t','ptend_q0001','ptend_q0002','ptend_q0003', 'ptend_u', 'ptend_v',
-  !         'cam_out_NETSW', 'cam_out_FLWDS', 'cam_out_PRECSC', 'cam_out_PRECC',
-  !         'cam_out_SOLS', 'cam_out_SOLL', 'cam_out_SOLSD', 'cam_out_SOLLD'           ]
-  if (do_mmf_nn_emulator_inference .and. cb_partial_coupling) then
+    else  ! NN inference
+       if (cb_partial_coupling) then ! NN partial coupling
+
+          call phys_run1   (phys_state,    ztodt, phys_tend,    pbuf2d, cam_in, cam_out)
+          ! store mmf calculation of prec_dp and snow_dp
+          do lchnk = begchunk, endchunk
+             phys_buffer_chunk => pbuf_get_chunk(pbuf2d, lchnk)
+             call pbuf_get_field(phys_buffer_chunk, prec_dp_idx, prec_dp)
+             call pbuf_get_field(phys_buffer_chunk, snow_dp_idx, snow_dp)
+             prec_dp_mmf(:,lchnk) = prec_dp(:) 
+             snow_dp_mmf(:,lchnk) = snow_dp(:)
+          end do
+
+          do lchnk = begchunk, endchunk
+             ! update phys_state_mmf but cannot overwrite its the mmf adv and phy history
+             call physics_state_dealloc(phys_state_mmf(lchnk))
+             call physics_state_copy(phys_state(lchnk), phys_state_mmf(lchnk))
+             phys_state_mmf(lchnk)%t_adv(:,:,:) = phys_state_mmf_backup(lchnk)%t_adv(:,:,:)
+             phys_state_mmf(lchnk)%u_adv(:,:,:) = phys_state_mmf_backup(lchnk)%u_adv(:,:,:)
+             phys_state_mmf(lchnk)%t_phy(:,:,:) = phys_state_mmf_backup(lchnk)%t_phy(:,:,:)
+             phys_state_mmf(lchnk)%u_phy(:,:,:) = phys_state_mmf_backup(lchnk)%u_phy(:,:,:)
+             phys_state_mmf(lchnk)%q_adv(:,:,:,:) = phys_state_mmf_backup(lchnk)%q_adv(:,:,:,:)
+             phys_state_mmf(lchnk)%q_phy(:,:,:,:) = phys_state_mmf_backup(lchnk)%q_phy(:,:,:,:)
+             cam_out_mmf(lchnk) = cam_out(lchnk)
+          end do
+
+          call phys_run1_NN(phys_state_nn, phys_state_aphys1, ztodt, phys_tend_nn, pbuf2d, cam_in, cam_out_nn,&
+                            solin, coszrs)
+          ! store nn calculation of prec_dp and snow_dp
+          do lchnk = begchunk, endchunk
+             phys_buffer_chunk => pbuf_get_chunk(pbuf2d, lchnk)
+             call pbuf_get_field(phys_buffer_chunk, prec_dp_idx, prec_dp)
+             call pbuf_get_field(phys_buffer_chunk, snow_dp_idx, snow_dp)
+             prec_dp_nn(:,lchnk) = prec_dp(:)
+             snow_dp_nn(:,lchnk) = snow_dp(:)
+             prec_dp(:) = prec_dp_mmf(:,lchnk) ! restored to mmf calculation
+             snow_dp(:) = snow_dp_mmf(:,lchnk) ! (prep for cb_partial_coupling)
+          end do
+
+       else ! NN full coupling
+          call phys_run1_NN(phys_state, phys_state_aphys1, ztodt, phys_tend, pbuf2d,  cam_in, cam_out,&
+                            solin, coszrs)
+          do lchnk = begchunk, endchunk
+            ! in fully nn coupling case (no partial coupling), phys_state_mmf is just synced with phys_state but won't be used
+            call physics_state_dealloc(phys_state_mmf(lchnk))
+            call physics_state_copy(phys_state(lchnk), phys_state_mmf(lchnk))
+            cam_out_mmf(lchnk)    = cam_out(lchnk)
+          end do
+       end if ! (cb_partial_coupling)
+    end if ! (.not. do_mmf_nn_emulator_inference)
+
+    ! Partial coupling
+    ! NN calculations overide MMF calculations for any variables included in 'cb_partial_coupling_vars'
+    ! e.g., [ 'ptend_t','ptend_q0001','ptend_q0002','ptend_q0003', 'ptend_u', 'ptend_v',
+    !         'cam_out_NETSW', 'cam_out_FLWDS', 'cam_out_PRECSC', 'cam_out_PRECC',
+    !         'cam_out_SOLS', 'cam_out_SOLL', 'cam_out_SOLSD', 'cam_out_SOLLD'           ]
+    if (do_mmf_nn_emulator_inference .and. cb_partial_coupling) then
   
-    if (cb_do_ramp) then
-      write (iulog,*) 'MMF_NN_EMULATOR partial coupling: cb_ramp_option = ', trim(cb_ramp_option)
+       if (cb_do_ramp) then
+         write (iulog,*) 'MMF_NN_EMULATOR partial coupling: cb_ramp_option = ', trim(cb_ramp_option)
   
-      select case (to_lower(trim(cb_ramp_option)))
-        case('constant')
-          ramp_ratio = cb_ramp_factor
-        case('linear')
+         select case (to_lower(trim(cb_ramp_option)))
+           case('constant')
+             ramp_ratio = cb_ramp_factor
+           case('linear')
           
-          if (nstep-nstep0-nstep_NN .le. cb_ramp_linear_steps) then
-            ramp_ratio = cb_ramp_factor * (nstep-nstep0-nstep_NN)*1.0/(cb_ramp_linear_steps*1.0)
-          else
-            ramp_ratio = cb_ramp_factor
-          end if
-        case('step')
+             if (nstep-nstep0-nstep_NN .le. cb_ramp_linear_steps) then
+               ramp_ratio = cb_ramp_factor * (nstep-nstep0-nstep_NN)*1.0/(cb_ramp_linear_steps*1.0)
+             else
+               ramp_ratio = cb_ramp_factor
+             end if
+           case('step')
           
-          if (mod(nstep-nstep0-nstep_NN, (cb_ramp_step_0steps + cb_ramp_step_1steps)) .le. cb_ramp_step_1steps) then
-            ramp_ratio = cb_ramp_factor
-          else
-            ramp_ratio = 0.0
-          end if
-      end select
-    else
-      ramp_ratio = 1.0
-    end if
+             if (mod(nstep-nstep0-nstep_NN, (cb_ramp_step_0steps + cb_ramp_step_1steps)) .le. cb_ramp_step_1steps) then
+               ramp_ratio = cb_ramp_factor
+             else
+               ramp_ratio = 0.0
+             end if
+         end select
+       else
+         ramp_ratio = 1.0
+       end if
     
-    if (cb_do_ramp) then
-      write (iulog,*) 'MMF_NN_EMULATOR partial coupling: cb_do_ramp is on'
-      write (iulog,*) 'MMF_NN_EMULATOR partial coupling: 1 is fully NN, ramp_ratio = ', ramp_ratio
-      write (iulog,*) 'MMF_NN_EMULATOR partial coupling: cb_ramp_option = ', trim(cb_ramp_option)
-    else
-      write (iulog,*) 'MMF_NN_EMULATOR partial coupling: cb_do_ramp is off'
-      write (iulog,*) 'MMF_NN_EMULATOR partial coupling: 1 is fully NN, ramp_ratio = ', ramp_ratio
-    end if
+      if (cb_do_ramp) then
+        write (iulog,*) 'MMF_NN_EMULATOR partial coupling: cb_do_ramp is on'
+        write (iulog,*) 'MMF_NN_EMULATOR partial coupling: 1 is fully NN, ramp_ratio = ', ramp_ratio
+        write (iulog,*) 'MMF_NN_EMULATOR partial coupling: cb_ramp_option = ', trim(cb_ramp_option)
+      else
+        write (iulog,*) 'MMF_NN_EMULATOR partial coupling: cb_do_ramp is off'
+        write (iulog,*) 'MMF_NN_EMULATOR partial coupling: 1 is fully NN, ramp_ratio = ', ramp_ratio
+      end if
 
-     call cnst_get_ind('CLDICE', ixcldice)
-     call cnst_get_ind('CLDLIQ', ixcldliq)
-     do c = begchunk, endchunk
-        k = 1
-        do while (k < pflds  .and. cb_partial_coupling_vars(k) /= ' ')
-           if (trim(cb_partial_coupling_vars(k)) == 'ptend_t') then
-              phys_state(c)%t(:,:)   = phys_state_nn(c)%t(:,:)*ramp_ratio + phys_state(c)%t(:,:)*(1.0_r8-ramp_ratio)
-              phys_tend(c)%dtdt(:,:) = phys_tend_nn(c)%dtdt(:,:)*ramp_ratio + phys_tend(c)%dtdt(:,:)*(1.0_r8-ramp_ratio)
-              do_geopotential = .true.
-              if (nstep-nstep0 .eq. nstep_NN .and. masterproc) then
-                 write (iulog,*) 'MMF_NN_EMULATOR partial coupling: ', trim(cb_partial_coupling_vars(k))
-              endif
-           else if (trim(cb_partial_coupling_vars(k)) == 'ptend_q0001') then
-              phys_state(c)%q(:,:,1) = phys_state_nn(c)%q(:,:,1)*ramp_ratio + phys_state(c)%q(:,:,1)*(1.0_r8-ramp_ratio) 
-              do_geopotential = .true.
-              if (nstep-nstep0 .eq. nstep_NN .and. masterproc) then
-                 write (iulog,*) 'MMF_NN_EMULATOR partial coupling: ', trim(cb_partial_coupling_vars(k))
+      call cnst_get_ind('CLDICE', ixcldice)
+      call cnst_get_ind('CLDLIQ', ixcldliq)
+      do c = begchunk, endchunk
+         k = 1
+         do while (k < pflds  .and. cb_partial_coupling_vars(k) /= ' ')
+            if (trim(cb_partial_coupling_vars(k)) == 'ptend_t') then
+               phys_state(c)%t(:,:)   = phys_state_nn(c)%t(:,:)*ramp_ratio + phys_state(c)%t(:,:)*(1.0_r8-ramp_ratio)
+               phys_tend(c)%dtdt(:,:) = phys_tend_nn(c)%dtdt(:,:)*ramp_ratio + phys_tend(c)%dtdt(:,:)*(1.0_r8-ramp_ratio)
+               do_geopotential = .true.
+               if (nstep-nstep0 .eq. nstep_NN .and. masterproc) then
+                  write (iulog,*) 'MMF_NN_EMULATOR partial coupling: ', trim(cb_partial_coupling_vars(k))
+               endif
+            else if (trim(cb_partial_coupling_vars(k)) == 'ptend_q0001') then
+               phys_state(c)%q(:,:,1) = phys_state_nn(c)%q(:,:,1)*ramp_ratio + phys_state(c)%q(:,:,1)*(1.0_r8-ramp_ratio) 
+                do_geopotential = .true.
+               if (nstep-nstep0 .eq. nstep_NN .and. masterproc) then
+                  write (iulog,*) 'MMF_NN_EMULATOR partial coupling: ', trim(cb_partial_coupling_vars(k))
               endif
            else if (trim(cb_partial_coupling_vars(k)) == 'ptend_q0002') then
-              phys_state(c)%q(:,:,ixcldliq) = phys_state_nn(c)%q(:,:,ixcldliq)*ramp_ratio + phys_state(c)%q(:,:,ixcldliq)*(1.0_r8-ramp_ratio)
-              if (nstep-nstep0 .eq. nstep_NN .and. masterproc) then
-                 write (iulog,*) 'MMF_NN_EMULATOR partial coupling: ', trim(cb_partial_coupling_vars(k))
-              endif
-           else if (trim(cb_partial_coupling_vars(k)) == 'ptend_q0003') then
-              phys_state(c)%q(:,:,ixcldice) = phys_state_nn(c)%q(:,:,ixcldice)*ramp_ratio + phys_state(c)%q(:,:,ixcldice)*(1.0_r8-ramp_ratio)
-              if (nstep-nstep0 .eq. nstep_NN .and. masterproc) then
-                 write (iulog,*) 'MMF_NN_EMULATOR partial coupling: ', trim(cb_partial_coupling_vars(k))
-              endif
-           else if (trim(cb_partial_coupling_vars(k)) == 'ptend_u') then
-              phys_state(c)%u(:,:)   = phys_state_nn(c)%u(:,:)*ramp_ratio + phys_state(c)%u(:,:)*(1.0_r8-ramp_ratio)
-              phys_tend(c)%dudt(:,:) = phys_tend_nn(c)%dudt(:,:)*ramp_ratio + phys_tend(c)%dudt(:,:)*(1.0_r8-ramp_ratio)
-              if (nstep-nstep0 .eq. nstep_NN .and. masterproc) then
-                 write (iulog,*) 'MMF_NN_EMULATOR partial coupling: ', trim(cb_partial_coupling_vars(k))
-              endif
-           else if (trim(cb_partial_coupling_vars(k)) == 'ptend_v') then
-              phys_state(c)%v(:,:)   = phys_state_nn(c)%v(:,:)*ramp_ratio + phys_state(c)%v(:,:)*(1.0_r8-ramp_ratio)
+                phys_state(c)%q(:,:,ixcldliq) = phys_state_nn(c)%q(:,:,ixcldliq)*ramp_ratio + phys_state(c)%q(:,:,ixcldliq)*(1.0_r8-ramp_ratio)
+               if (nstep-nstep0 .eq. nstep_NN .and. masterproc) then
+                  write (iulog,*) 'MMF_NN_EMULATOR partial coupling: ', trim(cb_partial_coupling_vars(k))
+               endif
+            else if (trim(cb_partial_coupling_vars(k)) == 'ptend_q0003') then
+               phys_state(c)%q(:,:,ixcldice) = phys_state_nn(c)%q(:,:,ixcldice)*ramp_ratio + phys_state(c)%q(:,:,ixcldice)*(1.0_r8-ramp_ratio)
+               if (nstep-nstep0 .eq. nstep_NN .and. masterproc) then
+                  write (iulog,*) 'MMF_NN_EMULATOR partial coupling: ', trim(cb_partial_coupling_vars(k))
+                endif
+            else if (trim(cb_partial_coupling_vars(k)) == 'ptend_u') then
+               phys_state(c)%u(:,:)   = phys_state_nn(c)%u(:,:)*ramp_ratio + phys_state(c)%u(:,:)*(1.0_r8-ramp_ratio)
+               phys_tend(c)%dudt(:,:) = phys_tend_nn(c)%dudt(:,:)*ramp_ratio + phys_tend(c)%dudt(:,:)*(1.0_r8-ramp_ratio)
+               if (nstep-nstep0 .eq. nstep_NN .and. masterproc) then
+                  write (iulog,*) 'MMF_NN_EMULATOR partial coupling: ', trim(cb_partial_coupling_vars(k))
+               endif
+            else if (trim(cb_partial_coupling_vars(k)) == 'ptend_v') then
+               phys_state(c)%v(:,:)   = phys_state_nn(c)%v(:,:)*ramp_ratio + phys_state(c)%v(:,:)*(1.0_r8-ramp_ratio)
               phys_tend(c)%dvdt(:,:) = phys_tend_nn(c)%dvdt(:,:)*ramp_ratio + phys_tend(c)%dvdt(:,:)*(1.0_r8-ramp_ratio)
-              if (nstep-nstep0 .eq. nstep_NN .and. masterproc) then
-                 write (iulog,*) 'MMF_NN_EMULATOR partial coupling: ', trim(cb_partial_coupling_vars(k))
+               if (nstep-nstep0 .eq. nstep_NN .and. masterproc) then
+                  write (iulog,*) 'MMF_NN_EMULATOR partial coupling: ', trim(cb_partial_coupling_vars(k))
               endif
            else if (trim(cb_partial_coupling_vars(k)) == 'cam_out_NETSW') then
-              cam_out(c)%netsw(:) = cam_out_nn(c)%netsw(:)*ramp_ratio + cam_out(c)%netsw(:)*(1.0_r8-ramp_ratio)
-              if (nstep-nstep0 .eq. nstep_NN .and. masterproc) then
-                 write (iulog,*) 'MMF_NN_EMULATOR partial coupling: ', trim(cb_partial_coupling_vars(k))
-              endif
+               cam_out(c)%netsw(:) = cam_out_nn(c)%netsw(:)*ramp_ratio + cam_out(c)%netsw(:)*(1.0_r8-ramp_ratio)
+               if (nstep-nstep0 .eq. nstep_NN .and. masterproc) then
+                  write (iulog,*) 'MMF_NN_EMULATOR partial coupling: ', trim(cb_partial_coupling_vars(k))
+               endif
            else if (trim(cb_partial_coupling_vars(k)) == 'cam_out_FLWDS') then
               cam_out(c)%flwds(:) = cam_out_nn(c)%flwds(:)*ramp_ratio + cam_out(c)%flwds(:)*(1.0_r8-ramp_ratio)
               if (nstep-nstep0 .eq. nstep_NN .and. masterproc) then
@@ -1337,20 +1339,20 @@ subroutine mmf_nn_emulator_driver(phys_state, phys_state_aphys1, phys_state_mmf,
                  write (iulog,*) 'MMF_NN_EMULATOR partial coupling: ', trim(cb_partial_coupling_vars(k))
               endif
            else if (trim(cb_partial_coupling_vars(k)) == 'cam_out_SOLSD') then
-              cam_out(c)%solsd(:) = cam_out_nn(c)%solsd(:)*ramp_ratio + cam_out(c)%solsd(:)*(1.0_r8-ramp_ratio)
-              if (nstep-nstep0 .eq. nstep_NN .and. masterproc) then
-                 write (iulog,*) 'MMF_NN_EMULATOR partial coupling: ', trim(cb_partial_coupling_vars(k))
-              endif
+                cam_out(c)%solsd(:) = cam_out_nn(c)%solsd(:)*ramp_ratio + cam_out(c)%solsd(:)*(1.0_r8-ramp_ratio)
+                if (nstep-nstep0 .eq. nstep_NN .and. masterproc) then
+                   write (iulog,*) 'MMF_NN_EMULATOR partial coupling: ', trim(cb_partial_coupling_vars(k))
+                endif
            else if (trim(cb_partial_coupling_vars(k)) == 'cam_out_SOLLD') then
               cam_out(c)%solld(:) = cam_out_nn(c)%solld(:)*ramp_ratio + cam_out(c)%solld(:)*(1.0_r8-ramp_ratio)
-              if (nstep-nstep0 .eq. nstep_NN .and. masterproc) then
+                if (nstep-nstep0 .eq. nstep_NN .and. masterproc) then
                  write (iulog,*) 'MMF_NN_EMULATOR partial coupling: ', trim(cb_partial_coupling_vars(k))
-              endif
-           else if (trim(cb_partial_coupling_vars(k)) == 'cam_out_PRECSC') then
+                endif
+             else if (trim(cb_partial_coupling_vars(k)) == 'cam_out_PRECSC') then
               phys_buffer_chunk => pbuf_get_chunk(pbuf2d, c)
               call pbuf_get_field(phys_buffer_chunk, snow_dp_idx, snow_dp)
-              snow_dp(:) = snow_dp_nn(:,c)*ramp_ratio + snow_dp(:)*(1.0_r8-ramp_ratio) 
-              if (nstep-nstep0 .eq. nstep_NN .and. masterproc) then
+                snow_dp(:) = snow_dp_nn(:,c)*ramp_ratio + snow_dp(:)*(1.0_r8-ramp_ratio) 
+               if (nstep-nstep0 .eq. nstep_NN .and. masterproc) then
                  write (iulog,*) 'MMF_NN_EMULATOR partial coupling: ', trim(cb_partial_coupling_vars(k))
               endif
            else if (trim(cb_partial_coupling_vars(k)) == 'cam_out_PRECC') then
@@ -1361,12 +1363,12 @@ subroutine mmf_nn_emulator_driver(phys_state, phys_state_aphys1, phys_state_mmf,
                  write (iulog,*) 'MMF_NN_EMULATOR partial coupling: ', trim(cb_partial_coupling_vars(k))
               endif
            else
-              call endrun('[MMF_NN_EMULATOR: cb_partial_coupling] Wrong variables are included in cb_partial_coupling_vars: ' // trim(cb_partial_coupling_vars(k)))
+                call endrun('[MMF_NN_EMULATOR: cb_partial_coupling] Wrong variables are included in cb_partial_coupling_vars: ' // trim(cb_partial_coupling_vars(k)))
            end if
            k = k+1
-        end do ! k
+         end do ! k
 
-        if (do_geopotential) then
+         if (do_geopotential) then
             ncol = phys_state(c)%ncol
             zvirv_loc(:,:) = zvir
             rairv_loc(:,:) = rair
@@ -1379,167 +1381,167 @@ subroutine mmf_nn_emulator_driver(phys_state, phys_state_aphys1, phys_state_mmf,
                phys_state(c)%s(:ncol,j) = phys_state(c)%t(:ncol,j)*cpair &
                                           + gravit*phys_state(c)%zm(:ncol,j) + phys_state(c)%phis(:ncol)
             end do ! j
-        end if ! (do_geopotential)
+         end if ! (do_geopotential)
 
-     end do ! c
-  end if ! (cb_partial coupling)
+      end do ! c
+    end if ! (cb_partial coupling)
 
-  ! copy from the tphysbc2 to here. make sure the outputted history file is consistent with the partial coupling
-  do lchnk=begchunk, endchunk
-    phys_buffer_chunk => pbuf_get_chunk(pbuf2d, lchnk)
-    call t_startf('bc_history_write')
-    call diag_phys_writeout(phys_state(lchnk), cam_out(lchnk)%psl)
-    call diag_conv(phys_state(lchnk), ztodt, phys_buffer_chunk)
-    call t_stopf('bc_history_write')
+    ! copy from the tphysbc2 to here. make sure the outputted history file is consistent with the partial coupling
+    do lchnk=begchunk, endchunk
+      phys_buffer_chunk => pbuf_get_chunk(pbuf2d, lchnk)
+      call t_startf('bc_history_write')
+      call diag_phys_writeout(phys_state(lchnk), cam_out(lchnk)%psl)
+      call diag_conv(phys_state(lchnk), ztodt, phys_buffer_chunk)
+      call t_stopf('bc_history_write')
 
+      !-----------------------------------------------------------------------------
+      ! Write cloud diagnostics on history file
+      !-----------------------------------------------------------------------------
+      call t_startf('bc_cld_diag_history_write')
+      call cloud_diagnostics_calc(phys_state(lchnk), phys_buffer_chunk)
+      call t_stopf('bc_cld_diag_history_write')
+    end do 
     !-----------------------------------------------------------------------------
-    ! Write cloud diagnostics on history file
+    ! phys_run1 closing
+    ! - tphysbc2 diagnostic (including cam_export)
     !-----------------------------------------------------------------------------
-    call t_startf('bc_cld_diag_history_write')
-    call cloud_diagnostics_calc(phys_state(lchnk), phys_buffer_chunk)
-    call t_stopf('bc_cld_diag_history_write')
-  end do 
-  !-----------------------------------------------------------------------------
-  ! phys_run1 closing
-  ! - tphysbc2 diagnostic (including cam_export)
-  !-----------------------------------------------------------------------------
-  do lchnk=begchunk, endchunk
-     ! Diagnose the location of the tropopause
-     call tropopause_output(phys_state(lchnk))
+    do lchnk=begchunk, endchunk
+       ! Diagnose the location of the tropopause
+       call tropopause_output(phys_state(lchnk))
 
-     ! Save atmospheric fields to force surface models
-     phys_buffer_chunk => pbuf_get_chunk(pbuf2d, lchnk)
-     call cam_export(phys_state(lchnk), cam_out(lchnk), phys_buffer_chunk)
+       ! Save atmospheric fields to force surface models
+       phys_buffer_chunk => pbuf_get_chunk(pbuf2d, lchnk)
+       call cam_export(phys_state(lchnk), cam_out(lchnk), phys_buffer_chunk)
 
-     ! Write export state to history file
-     call diag_export(cam_out(lchnk))
-  end do
+       ! Write export state to history file
+       call diag_export(cam_out(lchnk))
+    end do
 
-  do lchnk=begchunk,endchunk
-    call physics_state_dealloc(phys_state_nn(lchnk))
-    call physics_state_dealloc(phys_state_mmf_backup(lchnk))
-    call physics_tend_dealloc(phys_tend_nn(lchnk))
-  end do
-  deallocate(phys_state_nn)
-  deallocate(phys_state_mmf_backup)
-  deallocate(phys_tend_nn)
+    do lchnk=begchunk,endchunk
+      call physics_state_dealloc(phys_state_nn(lchnk))
+      call physics_state_dealloc(phys_state_mmf_backup(lchnk))
+      call physics_tend_dealloc(phys_tend_nn(lchnk))
+    end do
+    deallocate(phys_state_nn)
+    deallocate(phys_state_mmf_backup)
+    deallocate(phys_tend_nn)
 
-end subroutine mmf_nn_emulator_driver
+  end subroutine mmf_nn_emulator_driver
 
-subroutine phys_run1_NN(phys_state, phys_state_aphys1, ztodt, phys_tend, pbuf2d,  cam_in, cam_out, &
-   solin, coszrs)
-   !-----------------------------------------------------------------------------
-   ! Purpose: First part of atmos physics before updating of surface components
-   !-----------------------------------------------------------------------------
-   use mmf_nn_emulator,         only: neural_net, &
+  subroutine phys_run1_NN(phys_state, phys_state_aphys1, ztodt, phys_tend, pbuf2d,  cam_in, cam_out, &
+                          solin, coszrs)
+    !-----------------------------------------------------------------------------
+    ! Purpose: First part of atmos physics before updating of surface components
+    !-----------------------------------------------------------------------------
+    use mmf_nn_emulator,         only: neural_net, &
          cb_partial_coupling, cb_partial_coupling_vars
-   use physics_buffer,  only: physics_buffer_desc, pbuf_get_chunk, pbuf_get_field
-   use time_manager,    only: get_nstep
-   use check_energy,    only: check_energy_gmean
-   use flux_avg,        only: flux_avg_init
-   !-----------------------------------------------------------------------------
-   ! Interface arguments
-   !-----------------------------------------------------------------------------
-   real(r8), intent(in) :: ztodt            ! physics time step unless nstep=0
-   type(physics_state), intent(inout), dimension(begchunk:endchunk) :: phys_state
-   type(physics_state), intent(in),    dimension(begchunk:endchunk) :: phys_state_aphys1
-   type(physics_tend ), intent(inout), dimension(begchunk:endchunk) :: phys_tend
+    use physics_buffer,  only: physics_buffer_desc, pbuf_get_chunk, pbuf_get_field
+    use time_manager,    only: get_nstep
+    use check_energy,    only: check_energy_gmean
+    use flux_avg,        only: flux_avg_init
+    !-----------------------------------------------------------------------------
+    ! Interface arguments
+    !-----------------------------------------------------------------------------
+    real(r8), intent(in) :: ztodt            ! physics time step unless nstep=0
+    type(physics_state), intent(inout), dimension(begchunk:endchunk) :: phys_state
+    type(physics_state), intent(in),    dimension(begchunk:endchunk) :: phys_state_aphys1
+    type(physics_tend ), intent(inout), dimension(begchunk:endchunk) :: phys_tend
 
-   type(physics_buffer_desc), pointer, dimension(:,:) :: pbuf2d
-   type(cam_in_t),                     dimension(begchunk:endchunk) :: cam_in
-   type(cam_out_t),                    dimension(begchunk:endchunk) :: cam_out
+    type(physics_buffer_desc), pointer, dimension(:,:) :: pbuf2d
+    type(cam_in_t),                     dimension(begchunk:endchunk) :: cam_in
+    type(cam_out_t),                    dimension(begchunk:endchunk) :: cam_out
 
-   real(r8), intent(in), dimension(pcols,begchunk:endchunk) :: coszrs  ! Cosine solar zenith angle
-   real(r8), intent(in), dimension(pcols,begchunk:endchunk) :: solin   ! Insolation
+    real(r8), intent(in), dimension(pcols,begchunk:endchunk) :: coszrs  ! Cosine solar zenith angle
+    real(r8), intent(in), dimension(pcols,begchunk:endchunk) :: solin   ! Insolation
 
-   !-----------------------------------------------------------------------------
-   ! Local Variables
-   !-----------------------------------------------------------------------------
-   type(physics_state)                              :: state
-   type(physics_buffer_desc),pointer, dimension(:)  :: phys_buffer_chunk
-   type(physics_ptend)                              :: ptend 
-   integer :: lchnk                             ! chunk identifier
-   integer :: nstep                             ! current timestep number
-   integer :: ncol
-   integer :: ixcldice, ixcldliq            ! constituent indices for cloud liquid and ice water.
-   real(r8), pointer, dimension(:,:) :: tini
-   real(r8), pointer, dimension(:,:) :: qini
-   real(r8), pointer, dimension(:,:) :: cldliqini
-   real(r8), pointer, dimension(:,:) :: cldiceini
+    !-----------------------------------------------------------------------------
+    ! Local Variables
+    !-----------------------------------------------------------------------------
+    type(physics_state)                              :: state
+    type(physics_buffer_desc),pointer, dimension(:)  :: phys_buffer_chunk
+    type(physics_ptend)                              :: ptend 
+    integer :: lchnk                             ! chunk identifier
+    integer :: nstep                             ! current timestep number
+    integer :: ncol
+    integer :: ixcldice, ixcldliq            ! constituent indices for cloud liquid and ice water.
+    real(r8), pointer, dimension(:,:) :: tini
+    real(r8), pointer, dimension(:,:) :: qini
+    real(r8), pointer, dimension(:,:) :: cldliqini
+    real(r8), pointer, dimension(:,:) :: cldiceini
 
-   nullify(phys_buffer_chunk)
-   nullify(tini)
-   nullify(qini)
-   nullify(cldliqini)
-   nullify(cldiceini)
+    nullify(phys_buffer_chunk)
+    nullify(tini)
+    nullify(qini)
+    nullify(cldliqini)
+    nullify(cldiceini)
 
-   !-----------------------------------------------------------------------------
-   ! phys_run1 opening
-   !-----------------------------------------------------------------------------
-   nstep = get_nstep()
+    !-----------------------------------------------------------------------------
+    ! phys_run1 opening
+    !-----------------------------------------------------------------------------
+    nstep = get_nstep()
 
-   ! Set physics tendencies to 0
-   do lchnk=begchunk, endchunk
-   ncol = phys_state(lchnk)%ncol
-   phys_tend(lchnk)%dtdt(:ncol,:pver)  = 0._r8
-   phys_tend(lchnk)%dudt(:ncol,:pver)  = 0._r8
-   phys_tend(lchnk)%dvdt(:ncol,:pver)  = 0._r8
-   end do
+    ! Set physics tendencies to 0
+    do lchnk=begchunk, endchunk
+      ncol = phys_state(lchnk)%ncol
+      phys_tend(lchnk)%dtdt(:ncol,:pver)  = 0._r8
+      phys_tend(lchnk)%dudt(:ncol,:pver)  = 0._r8
+      phys_tend(lchnk)%dvdt(:ncol,:pver)  = 0._r8
+    end do
 
-   ! The following initialization depends on the import state (cam_in)
-   ! being initialized.  This isn't true when cam_init is called, so need
-   ! to postpone this initialization to here.
-   if (nstep == 0 .and. phys_do_flux_avg()) call flux_avg_init(cam_in,  pbuf2d)
+    ! The following initialization depends on the import state (cam_in)
+    ! being initialized.  This isn't true when cam_init is called, so need
+    ! to postpone this initialization to here.
+    if (nstep == 0 .and. phys_do_flux_avg()) call flux_avg_init(cam_in,  pbuf2d)
 
-   ! Compute total energy of input state and previous output state
-   call t_startf ('chk_en_gmean')
-   call check_energy_gmean(phys_state, pbuf2d, ztodt, nstep)
-   call t_stopf ('chk_en_gmean')
+    ! Compute total energy of input state and previous output state
+    call t_startf ('chk_en_gmean')
+    call check_energy_gmean(phys_state, pbuf2d, ztodt, nstep)
+    call t_stopf ('chk_en_gmean')
 
-   #ifdef TRACER_CHECK
-   call gmean_mass ('before tphysbc DRY', phys_state)
-   #endif
+#ifdef TRACER_CHECK
+  call gmean_mass ('before tphysbc DRY', phys_state)
+#endif
 
    ! these initial states will be used in tphysac diagnostics
-   do lchnk=begchunk, endchunk
-   state = phys_state(lchnk)
-   phys_buffer_chunk => pbuf_get_chunk(pbuf2d, lchnk)
-   call pbuf_get_field(phys_buffer_chunk, tini_idx, tini)
-   call pbuf_get_field(phys_buffer_chunk, qini_idx, qini)
-   call pbuf_get_field(phys_buffer_chunk, cldliqini_idx, cldliqini)
-   call pbuf_get_field(phys_buffer_chunk, cldiceini_idx, cldiceini)
+    do lchnk=begchunk, endchunk
+      state = phys_state(lchnk)
+      phys_buffer_chunk => pbuf_get_chunk(pbuf2d, lchnk)
+      call pbuf_get_field(phys_buffer_chunk, tini_idx, tini)
+      call pbuf_get_field(phys_buffer_chunk, qini_idx, qini)
+      call pbuf_get_field(phys_buffer_chunk, cldliqini_idx, cldliqini)
+      call pbuf_get_field(phys_buffer_chunk, cldiceini_idx, cldiceini)
 
-   ncol = phys_state(lchnk)%ncol
-   tini(:ncol,:pver) = state%t(:ncol,:pver)
-   call cnst_get_ind('CLDLIQ', ixcldliq)
-   call cnst_get_ind('CLDICE', ixcldice)
-   qini     (:ncol,:pver) = state%q(:ncol,:pver,       1)
-   cldliqini(:ncol,:pver) = state%q(:ncol,:pver,ixcldliq)
-   cldiceini(:ncol,:pver) = state%q(:ncol,:pver,ixcldice)
-   end do
+      ncol = phys_state(lchnk)%ncol
+      tini(:ncol,:pver) = state%t(:ncol,:pver)
+      call cnst_get_ind('CLDLIQ', ixcldliq)
+      call cnst_get_ind('CLDICE', ixcldice)
+      qini     (:ncol,:pver) = state%q(:ncol,:pver,       1)
+      cldliqini(:ncol,:pver) = state%q(:ncol,:pver,ixcldliq)
+      cldiceini(:ncol,:pver) = state%q(:ncol,:pver,ixcldice)
+    end do
 
-   !-----------------------------------------------------------------------------
-   ! Neural network
-   !-----------------------------------------------------------------------------
-   do lchnk=begchunk, endchunk
-   phys_buffer_chunk => pbuf_get_chunk(pbuf2d, lchnk)
-   call neural_net (ptend, phys_state(lchnk), phys_state_aphys1(lchnk), &
-   phys_buffer_chunk, &
-   cam_in(lchnk), cam_out(lchnk), &
-   coszrs(:,lchnk), solin(:,lchnk), &
-   ztodt, lchnk)
-   call physics_update_ml (phys_state(lchnk), ptend, ztodt, phys_tend(lchnk))
-   end do
+    !-----------------------------------------------------------------------------
+    ! Neural network
+    !-----------------------------------------------------------------------------
+    do lchnk=begchunk, endchunk
+      phys_buffer_chunk => pbuf_get_chunk(pbuf2d, lchnk)
+      call neural_net (ptend, phys_state(lchnk), phys_state_aphys1(lchnk), &
+                      phys_buffer_chunk, &
+                      cam_in(lchnk), cam_out(lchnk), &
+                      coszrs(:,lchnk), solin(:,lchnk), &
+                      ztodt, lchnk)
+      call physics_update_ml (phys_state(lchnk), ptend, ztodt, phys_tend(lchnk))
+    end do
 
-   !-----------------------------------------------------------------------------
-   ! phys_run1 closing
-   !-----------------------------------------------------------------------------
-   #ifdef TRACER_CHECK
-   call gmean_mass ('between DRY', phys_state)
-   #endif
+  !-----------------------------------------------------------------------------
+  ! phys_run1 closing
+  !-----------------------------------------------------------------------------
+#ifdef TRACER_CHECK
+  call gmean_mass ('between DRY', phys_state)
+#endif
 
-end subroutine phys_run1_NN
-   #endif /* MMF_NN_EMULATOR */
+  end subroutine phys_run1_NN
+#endif /* MMF_NN_EMULATOR */
 
   !
   !-----------------------------------------------------------------------
@@ -1614,7 +1616,7 @@ end subroutine phys_run1_NN
     call t_startf ('chk_en_gmean')
     call check_energy_gmean(phys_state, pbuf2d, ztodt, nstep)
     call t_stopf ('chk_en_gmean')
-
+#ifndef MMF_NN_EMULATOR
     call t_stopf ('physpkg_st1')
 
     call t_startf ('physpkg_st1')
@@ -1629,12 +1631,114 @@ end subroutine phys_run1_NN
     call phys_timestep_init(phys_state, cam_in, cam_out, pbuf2d)
 
     call t_stopf ('physpkg_st1')
-
+#endif /* MMF_NN_EMULATOR */
 #ifdef TRACER_CHECK
     call gmean_mass ('before tphysbc DRY', phys_state)
 #endif
 
+#ifdef MMF_NN_EMULATOR
+  !-----------------------------------------------------------------------------
+  ! Physics tendency before coupler - Phase 1
+  !-----------------------------------------------------------------------------
 
+    call t_barrierf('sync_bc_physics', mpicom)
+    call t_startf ('bc_physics')
+    call t_startf ('bc_physics1')
+
+!$OMP PARALLEL DO PRIVATE (C, beg_count, phys_buffer_chunk, end_count, chunk_cost)
+    do c=begchunk, endchunk
+
+      beg_count = shr_sys_irtc(irtc_rate)
+
+      phys_buffer_chunk => pbuf_get_chunk(pbuf2d, c)
+
+      ! Output physics terms to IC file
+      call t_startf ('diag_physvar_ic')
+      call diag_physvar_ic ( c,  phys_buffer_chunk, cam_out(c), cam_in(c) )
+      call t_stopf ('diag_physvar_ic')
+
+      call tphysbc1(ztodt, fsns(1,c), fsnt(1,c), flns(1,c), flnt(1,c), &
+                    phys_state(c), phys_tend(c), phys_buffer_chunk, &
+                    fsds(1,c), sgh(1,c), sgh30(1,c), &
+                    cam_out(c), cam_in(c) )
+
+      end_count = shr_sys_irtc(irtc_rate)
+      chunk_cost = real( (end_count-beg_count), r8)/real(irtc_rate, r8)
+      call update_cost_p(c, chunk_cost)
+
+    end do
+
+    call t_stopf ('bc_physics1')
+
+  !-----------------------------------------------------------------------------
+  ! CRM physics
+  !-----------------------------------------------------------------------------  
+
+    if (use_ECPP) then
+      call crm_ecpp_output_initialize(crm_ecpp_output_chunk,pcols,pver)
+      call crm_ecpp_output_initialize(crm_ecpp_output,      ncrms,pver)
+    end if
+
+    call t_startf('crm_physics_tend')
+    call crm_physics_tend(ztodt, phys_state, phys_tend, ptend, pbuf2d, cam_in, cam_out, &
+                          species_class, crm_ecpp_output, &
+                          mmf_qchk_prec_dp, mmf_qchk_snow_dp, mmf_rad_flux )
+    call t_stopf('crm_physics_tend')
+
+    do c=begchunk, endchunk
+      call physics_update(phys_state(c), ptend(c), ztodt, phys_tend(c))
+      call check_energy_chng(phys_state(c), phys_tend(c), "crm_tend", nstep, ztodt, zero, &
+                             mmf_qchk_prec_dp(c,:), mmf_qchk_snow_dp(c,:), mmf_rad_flux(c,:))
+    end do
+
+  !-----------------------------------------------------------------------------
+  ! Physics tendency before coupler - Phase 2
+  !-----------------------------------------------------------------------------
+
+    call t_barrierf('sync_bc_physics', mpicom)
+    call t_startf ('bc_physics2')
+
+    ! Determine column start and end indices for crm_ecpp_output
+    ncol_sum = 0
+    do c=begchunk, endchunk
+      icol_beg(c) = ncol_sum + 1
+      icol_end(c) = ncol_sum + phys_state(c)%ncol
+      ncol_sum = ncol_sum + phys_state(c)%ncol
+    end do
+
+!$OMP PARALLEL DO PRIVATE (C, beg_count, phys_buffer_chunk, end_count, chunk_cost)
+    do c=begchunk, endchunk
+
+      beg_count = shr_sys_irtc(irtc_rate)
+
+      ! Output physics terms to IC file
+      phys_buffer_chunk => pbuf_get_chunk(pbuf2d, c)
+
+      if (use_ECPP) call crm_ecpp_output_copy( crm_ecpp_output, crm_ecpp_output_chunk, icol_beg(c), icol_end(c))
+
+      call tphysbc2(ztodt, fsns(1,c), fsnt(1,c), flns(1,c), flnt(1,c), &
+                    phys_state(c), phys_tend(c), phys_buffer_chunk, &
+                    fsds(1,c), sgh(1,c), sgh30(1,c), &
+                    cam_out(c), cam_in(c), crm_ecpp_output_chunk )
+
+      end_count = shr_sys_irtc(irtc_rate)
+      chunk_cost = real( (end_count-beg_count), r8)/real(irtc_rate, r8)
+      call update_cost_p(c, chunk_cost)
+
+    end do
+
+    call t_stopf ('bc_physics2')
+    call t_stopf ('bc_physics')
+
+    if (use_ECPP) then
+      call crm_ecpp_output_finalize(crm_ecpp_output_chunk)
+      call crm_ecpp_output_finalize(crm_ecpp_output)
+    end if
+
+  !-----------------------------------------------------------------------------
+  !-----------------------------------------------------------------------------
+
+#else
     !-----------------------------------------------------------------------
     ! Tendency physics before flux coupler invocation
     !-----------------------------------------------------------------------
@@ -1644,7 +1748,7 @@ end subroutine phys_run1_NN
     do c=begchunk, endchunk
       call outfld('Tg',cam_in(c)%ts,pcols   ,c     )
     end do
-#endif
+#endif /* defined BFB_CAM_SCAM_IOP */
 
     call t_barrierf('sync_bc_physics', mpicom)
     call t_startf ('bc_physics')
@@ -1693,7 +1797,7 @@ end subroutine phys_run1_NN
 
     ! Don't call the rest in CRM mode
     if(single_column.and.scm_crm_mode) return
-
+#endif /* ifndef MMF_NN_EMULATOR */
 #ifdef TRACER_CHECK
     call gmean_mass ('between DRY', phys_state)
 #endif
@@ -2234,8 +2338,8 @@ end subroutine phys_run1_NN
       call calc_te_and_aam_budgets(state, 'pAM')
     endif
 
-!!!   REMOVE THIS CALL, SINCE ONLY Q IS BEING ADJUSTED. WON'T BALANCE ENERGY. TE IS SAVED BEFORE THIS
-!!!   call check_energy_chng(state, tend, "drymass", nstep, ztodt, zero, zero, zero, zero)
+    !!!   REMOVE THIS CALL, SINCE ONLY Q IS BEING ADJUSTED. WON'T BALANCE ENERGY. TE IS SAVED BEFORE THIS
+    !!!   call check_energy_chng(state, tend, "drymass", nstep, ztodt, zero, zero, zero, zero)
 
     ! store T in buffer for use in computing dynamics T-tendency in next timestep
     do k = 1,pver
@@ -2959,596 +3063,596 @@ end subroutine phys_run1_NN
   end subroutine tphysbc
 
   subroutine tphysbc1(ztodt, fsns, fsnt, flns, flnt, &
-   state, tend, pbuf, fsds, &
-   sgh, sgh30, cam_out, cam_in )
-!----------------------------------------------------------------------------- 
-! Purpose: Evaluate physics processes BEFORE coupling to sfc components
-!          Phase 1 - energy fixer and dry adjustment
-!
-! Pass surface fields for separate surface flux calculations
-! Dump appropriate fields to history file.
-!-----------------------------------------------------------------------------
-use physics_buffer,         only: physics_buffer_desc, pbuf_get_field
-use physics_buffer,         only: pbuf_get_index, pbuf_old_tim_idx
-use physics_buffer,         only: dyn_time_lvls, pbuf_set_field
-use physics_types,          only: physics_ptend_init, physics_ptend_sum, &
-                    physics_state_check, physics_ptend_scale
-use cam_diagnostics,        only: diag_conv_tend_ini, diag_state_b4_phys_write
-use cam_history,            only: outfld, fieldname_len
-use physconst,              only: cpair, latvap, rga
-use constituents,           only: pcnst, qmin, cnst_get_ind
-use time_manager,           only: get_nstep
-use check_energy,           only: check_energy_chng, check_energy_fix, & 
-                    check_water, check_qflx
-use mo_gas_phase_chemdr,    only: map2chm
-use clybry_fam,             only: clybry_fam_adj
-use output_aerocom_aie,     only: do_aerocom_ind3
-use phys_control,           only: use_qqflx_fixer, use_mass_borrower
-use crm_physics,            only: crm_physics_tend, crm_surface_flux_bypass_tend
-use cloud_diagnostics,      only: cloud_diagnostics_calc
+                      state, tend, pbuf, fsds, &
+                      sgh, sgh30, cam_out, cam_in )
+    !----------------------------------------------------------------------------- 
+    ! Purpose: Evaluate physics processes BEFORE coupling to sfc components
+    !          Phase 1 - energy fixer and dry adjustment
+    !
+    ! Pass surface fields for separate surface flux calculations
+    ! Dump appropriate fields to history file.
+    !-----------------------------------------------------------------------------
+    use physics_buffer,         only: physics_buffer_desc, pbuf_get_field
+    use physics_buffer,         only: pbuf_get_index, pbuf_old_tim_idx
+    use physics_buffer,         only: dyn_time_lvls, pbuf_set_field
+    use physics_types,          only: physics_ptend_init, physics_ptend_sum, &
+                                    physics_state_check, physics_ptend_scale
+    use cam_diagnostics,        only: diag_conv_tend_ini, diag_state_b4_phys_write
+    use cam_history,            only: outfld, fieldname_len
+    use physconst,              only: cpair, latvap, rga
+    use constituents,           only: pcnst, qmin, cnst_get_ind
+    use time_manager,           only: get_nstep
+    use check_energy,           only: check_energy_chng, check_energy_fix, & 
+                                      check_water, check_qflx
+    use mo_gas_phase_chemdr,    only: map2chm
+    use clybry_fam,             only: clybry_fam_adj
+    use output_aerocom_aie,     only: do_aerocom_ind3
+    use phys_control,           only: use_qqflx_fixer, use_mass_borrower
+    use crm_physics,            only: crm_physics_tend, crm_surface_flux_bypass_tend
+    use cloud_diagnostics,      only: cloud_diagnostics_calc
 
-implicit none
-!-----------------------------------------------------------------------------
-! Interface Arguments
-!-----------------------------------------------------------------------------
-real(r8),            intent(in   ) :: ztodt         ! 2 delta t (model time increment)
-real(r8),            intent(inout) :: fsns(pcols)   ! Surface solar absorbed flux
-real(r8),            intent(inout) :: fsnt(pcols)   ! Net column abs solar flux at model top
-real(r8),            intent(inout) :: flns(pcols)   ! Srf longwave cooling (up-down) flux
-real(r8),            intent(inout) :: flnt(pcols)   ! Net outgoing lw flux at model top
-real(r8),            intent(inout) :: fsds(pcols)   ! Surface solar down flux
-real(r8),            intent(in   ) :: sgh(pcols)    ! Std. deviation of orography
-real(r8),            intent(in   ) :: sgh30(pcols)  ! Std. deviation of 30 s orography for tms
-type(physics_state), intent(inout) :: state
-type(physics_tend ), intent(inout) :: tend
-type(physics_buffer_desc), pointer :: pbuf(:)
-type(cam_out_t),     intent(inout) :: cam_out
-type(cam_in_t),      intent(in)    :: cam_in
-!-----------------------------------------------------------------------------
-! Local variables
-!-----------------------------------------------------------------------------
-type(physics_ptend)   :: ptend            ! indivdual parameterization tendencies
-type(physics_state)   :: state_alt        ! alt state for CRM input
-integer  :: nstep                         ! current timestep number
-real(r8) :: net_flx(pcols)
-real(r8) :: rtdt                          ! 1./ztodt
-integer  :: lchnk                         ! chunk identifier
-integer  :: ncol                          ! number of atmospheric columns
-integer  :: ierr
-integer  :: i,k,m,ihist                   ! Longitude, level, constituent indices
-integer  :: ixcldice, ixcldliq            ! constituent indices for cloud liquid and ice water.
+    implicit none
+    !-----------------------------------------------------------------------------
+    ! Interface Arguments
+    !-----------------------------------------------------------------------------
+    real(r8),            intent(in   ) :: ztodt         ! 2 delta t (model time increment)
+    real(r8),            intent(inout) :: fsns(pcols)   ! Surface solar absorbed flux
+    real(r8),            intent(inout) :: fsnt(pcols)   ! Net column abs solar flux at model top
+    real(r8),            intent(inout) :: flns(pcols)   ! Srf longwave cooling (up-down) flux
+    real(r8),            intent(inout) :: flnt(pcols)   ! Net outgoing lw flux at model top
+    real(r8),            intent(inout) :: fsds(pcols)   ! Surface solar down flux
+    real(r8),            intent(in   ) :: sgh(pcols)    ! Std. deviation of orography
+    real(r8),            intent(in   ) :: sgh30(pcols)  ! Std. deviation of 30 s orography for tms
+    type(physics_state), intent(inout) :: state
+    type(physics_tend ), intent(inout) :: tend
+    type(physics_buffer_desc), pointer :: pbuf(:)
+    type(cam_out_t),     intent(inout) :: cam_out
+    type(cam_in_t),      intent(in)    :: cam_in
+    !-----------------------------------------------------------------------------
+    ! Local variables
+    !-----------------------------------------------------------------------------
+    type(physics_ptend)   :: ptend            ! indivdual parameterization tendencies
+    type(physics_state)   :: state_alt        ! alt state for CRM input
+    integer  :: nstep                         ! current timestep number
+    real(r8) :: net_flx(pcols)
+    real(r8) :: rtdt                          ! 1./ztodt
+    integer  :: lchnk                         ! chunk identifier
+    integer  :: ncol                          ! number of atmospheric columns
+    integer  :: ierr
+    integer  :: i,k,m,ihist                   ! Longitude, level, constituent indices
+    integer  :: ixcldice, ixcldliq            ! constituent indices for cloud liquid and ice water.
 
-! physics buffer indices
-integer itim_old, ifld
+    ! physics buffer indices
+    integer itim_old, ifld
 
-! physics buffer fields for total energy and mass adjustment
-real(r8), pointer, dimension(:  ) :: teout
-real(r8), pointer, dimension(:,:) :: tini
-real(r8), pointer, dimension(:,:) :: qini
-real(r8), pointer, dimension(:,:) :: cldliqini
-real(r8), pointer, dimension(:,:) :: cldiceini
-real(r8), pointer, dimension(:,:) :: dtcore
-real(r8), pointer, dimension(:,:,:) :: fracis  ! fraction of transported species that are insoluble
+    ! physics buffer fields for total energy and mass adjustment
+    real(r8), pointer, dimension(:  ) :: teout
+    real(r8), pointer, dimension(:,:) :: tini
+    real(r8), pointer, dimension(:,:) :: qini
+    real(r8), pointer, dimension(:,:) :: cldliqini
+    real(r8), pointer, dimension(:,:) :: cldiceini
+    real(r8), pointer, dimension(:,:) :: dtcore
+    real(r8), pointer, dimension(:,:,:) :: fracis  ! fraction of transported species that are insoluble
 
-! energy checking variables
-real(r8) :: zero(pcols)                    ! array of zeros
-real(r8) :: flx_heat(pcols)
+    ! energy checking variables
+    real(r8) :: zero(pcols)                    ! array of zeros
+    real(r8) :: flx_heat(pcols)
 
-logical   :: lq(pcnst)
+    logical   :: lq(pcnst)
 
-character(len=fieldname_len)   :: varname, vsuffix
+    character(len=fieldname_len)   :: varname, vsuffix
 
-real(r8) :: ftem(pcols,pver)         ! tmp space
-real(r8), pointer, dimension(:) :: static_ener_ac_2d ! Vertically integrated static energy
-real(r8), pointer, dimension(:) :: water_vap_ac_2d   ! Vertically integrated water vapor
-real(r8) :: CIDiff(pcols)            ! Difference in vertically integrated static energy
+    real(r8) :: ftem(pcols,pver)         ! tmp space
+    real(r8), pointer, dimension(:) :: static_ener_ac_2d ! Vertically integrated static energy
+    real(r8), pointer, dimension(:) :: water_vap_ac_2d   ! Vertically integrated water vapor
+    real(r8) :: CIDiff(pcols)            ! Difference in vertically integrated static energy
 
-logical :: l_bc_energy_fix, l_dry_adj
+    logical :: l_bc_energy_fix, l_dry_adj
 
-call phys_getopts( l_bc_energy_fix_out    = l_bc_energy_fix    &
-    ,l_dry_adj_out          = l_dry_adj          )
+    call phys_getopts( l_bc_energy_fix_out    = l_bc_energy_fix    &
+                      ,l_dry_adj_out          = l_dry_adj          )
 
-!-----------------------------------------------------------------------------
-! Initialize stuff
-!-----------------------------------------------------------------------------
-call t_startf('bc_init')
+    !-----------------------------------------------------------------------------
+    ! Initialize stuff
+    !-----------------------------------------------------------------------------
+    call t_startf('bc_init')
 
-zero = 0._r8
-lchnk = state%lchnk
-ncol  = state%ncol
-rtdt = 1._r8/ztodt
-nstep = get_nstep()
+    zero = 0._r8
+    lchnk = state%lchnk
+    ncol  = state%ncol
+    rtdt = 1._r8/ztodt
+    nstep = get_nstep()
 
-if (pergro_test_active) then 
-!call outfld calls
-do ihist = 1 , nvars_prtrb_hist
-vsuffix  = trim(adjustl(hist_vars(ihist)))
-varname  = trim(adjustl(vsuffix))//'_topphysbc1' ! form variable name
-call outfld( trim(adjustl(varname)),get_var(state,vsuffix), pcols , lchnk )
-enddo
-endif
+    if (pergro_test_active) then 
+      !call outfld calls
+      do ihist = 1 , nvars_prtrb_hist
+        vsuffix  = trim(adjustl(hist_vars(ihist)))
+        varname  = trim(adjustl(vsuffix))//'_topphysbc1' ! form variable name
+        call outfld( trim(adjustl(varname)),get_var(state,vsuffix), pcols , lchnk )
+      enddo
+    endif
 
-call pbuf_get_field(pbuf, pbuf_get_index('static_ener_ac'), static_ener_ac_2d )
-call pbuf_get_field(pbuf, pbuf_get_index('water_vap_ac'), water_vap_ac_2d )
+    call pbuf_get_field(pbuf, pbuf_get_index('static_ener_ac'), static_ener_ac_2d )
+    call pbuf_get_field(pbuf, pbuf_get_index('water_vap_ac'), water_vap_ac_2d )
 
-! Integrate and compute the difference
-! CIDiff = difference of column integrated values
-if( nstep == 0 ) then
-CIDiff(:ncol) = 0.0_r8
-call outfld('DTENDTH', CIDiff, pcols, lchnk )
-call outfld('DTENDTQ', CIDiff, pcols, lchnk )
-else
-! MSE first
-ftem(:ncol,:) = (state%s(:ncol,:) + latvap*state%q(:ncol,:,1)) * state%pdel(:ncol,:)*rga
-do k=2,pver
-ftem(:ncol,1) = ftem(:ncol,1) + ftem(:ncol,k)
-end do
-CIDiff(:ncol) = (ftem(:ncol,1) - static_ener_ac_2d(:ncol))*rtdt
+    ! Integrate and compute the difference
+    ! CIDiff = difference of column integrated values
+    if( nstep == 0 ) then
+      CIDiff(:ncol) = 0.0_r8
+      call outfld('DTENDTH', CIDiff, pcols, lchnk )
+      call outfld('DTENDTQ', CIDiff, pcols, lchnk )
+    else
+      ! MSE first
+      ftem(:ncol,:) = (state%s(:ncol,:) + latvap*state%q(:ncol,:,1)) * state%pdel(:ncol,:)*rga
+      do k=2,pver
+        ftem(:ncol,1) = ftem(:ncol,1) + ftem(:ncol,k)
+      end do
+      CIDiff(:ncol) = (ftem(:ncol,1) - static_ener_ac_2d(:ncol))*rtdt
 
-call outfld('DTENDTH', CIDiff, pcols, lchnk )
-! Water vapor second
-ftem(:ncol,:) = state%q(:ncol,:,1)*state%pdel(:ncol,:)*rga
-do k=2,pver
-ftem(:ncol,1) = ftem(:ncol,1) + ftem(:ncol,k)
-end do
-CIDiff(:ncol) = (ftem(:ncol,1) - water_vap_ac_2d(:ncol))*rtdt
+      call outfld('DTENDTH', CIDiff, pcols, lchnk )
+      ! Water vapor second
+      ftem(:ncol,:) = state%q(:ncol,:,1)*state%pdel(:ncol,:)*rga
+      do k=2,pver
+        ftem(:ncol,1) = ftem(:ncol,1) + ftem(:ncol,k)
+      end do
+      CIDiff(:ncol) = (ftem(:ncol,1) - water_vap_ac_2d(:ncol))*rtdt
 
-call outfld('DTENDTQ', CIDiff, pcols, lchnk )
-end if
+      call outfld('DTENDTQ', CIDiff, pcols, lchnk )
+    end if
 
-! Associate pointers with physics buffer fields
-itim_old = pbuf_old_tim_idx()
-call pbuf_get_field(pbuf, teout_idx, teout, (/1,itim_old/), (/pcols,1/))
-call pbuf_get_field(pbuf, tini_idx, tini)
-call pbuf_get_field(pbuf, qini_idx, qini)
-call pbuf_get_field(pbuf, cldliqini_idx, cldliqini)
-call pbuf_get_field(pbuf, cldiceini_idx, cldiceini)
-call pbuf_get_field(pbuf, pbuf_get_index('DTCORE'), dtcore, (/1,1,itim_old/), (/pcols,pver,1/) )
-call pbuf_get_field(pbuf, pbuf_get_index('FRACIS'), fracis, (/1,1,1/),        (/pcols, pver, pcnst/)  )
-fracis (:ncol,:,1:pcnst) = 1._r8
+    ! Associate pointers with physics buffer fields
+    itim_old = pbuf_old_tim_idx()
+    call pbuf_get_field(pbuf, teout_idx, teout, (/1,itim_old/), (/pcols,1/))
+    call pbuf_get_field(pbuf, tini_idx, tini)
+    call pbuf_get_field(pbuf, qini_idx, qini)
+    call pbuf_get_field(pbuf, cldliqini_idx, cldliqini)
+    call pbuf_get_field(pbuf, cldiceini_idx, cldiceini)
+    call pbuf_get_field(pbuf, pbuf_get_index('DTCORE'), dtcore, (/1,1,itim_old/), (/pcols,pver,1/) )
+    call pbuf_get_field(pbuf, pbuf_get_index('FRACIS'), fracis, (/1,1,1/),        (/pcols, pver, pcnst/)  )
+    fracis (:ncol,:,1:pcnst) = 1._r8
 
-! Set physics tendencies to 0
-tend%dTdt(:ncol,:pver)  = 0._r8
-tend%dudt(:ncol,:pver)  = 0._r8
-tend%dvdt(:ncol,:pver)  = 0._r8
+    ! Set physics tendencies to 0
+    tend%dTdt(:ncol,:pver)  = 0._r8
+    tend%dudt(:ncol,:pver)  = 0._r8
+    tend%dvdt(:ncol,:pver)  = 0._r8
 
-!-----------------------------------------------------------------------------
-! Mass checks and fixers
-!-----------------------------------------------------------------------------
+    !-----------------------------------------------------------------------------
+    ! Mass checks and fixers
+    !-----------------------------------------------------------------------------
 
-call check_qflx (state, tend, "PHYBC01", nstep, ztodt, cam_in%cflx(:,1))
-call check_water(state, tend, "PHYBC01", nstep, ztodt)
+    call check_qflx (state, tend, "PHYBC01", nstep, ztodt, cam_in%cflx(:,1))
+    call check_water(state, tend, "PHYBC01", nstep, ztodt)
 
-! make sure tracers are all positive - if use_mass_borrower then just print diagnostics
-call qneg3('TPHYSBCb', lchnk, ncol, pcols, pver, 1, pcnst, qmin, state%q, .not.use_mass_borrower )
+    ! make sure tracers are all positive - if use_mass_borrower then just print diagnostics
+    call qneg3('TPHYSBCb', lchnk, ncol, pcols, pver, 1, pcnst, qmin, state%q, .not.use_mass_borrower )
 
-if(use_mass_borrower) then 
-! tracer borrower for mass conservation 
-do m = 1, pcnst 
-call massborrow("PHYBC01",lchnk,ncol,state%psetcols,m,m,qmin(m),state%q(1,1,m),state%pdel)
-end do
-end if 
+    if(use_mass_borrower) then 
+      ! tracer borrower for mass conservation 
+      do m = 1, pcnst 
+        call massborrow("PHYBC01",lchnk,ncol,state%psetcols,m,m,qmin(m),state%q(1,1,m),state%pdel)
+      end do
+    end if 
 
-! Validate state coming from the dynamics.
-if (state_debug_checks) call physics_state_check(state, name="before tphysbc (dycore?)")
+    ! Validate state coming from the dynamics.
+    if (state_debug_checks) call physics_state_check(state, name="before tphysbc (dycore?)")
 
-! Adjust chemistry for conservation issues
-call clybry_fam_adj( ncol, lchnk, map2chm, state%q, pbuf )
+    ! Adjust chemistry for conservation issues
+    call clybry_fam_adj( ncol, lchnk, map2chm, state%q, pbuf )
 
-! Validate output of clybry_fam_adj
-if (state_debug_checks) call physics_state_check(state, name="clybry_fam_adj")
+    ! Validate output of clybry_fam_adj
+    if (state_debug_checks) call physics_state_check(state, name="clybry_fam_adj")
 
-! make sure tracers are all positive, again - if use_mass_borrower then just print diagnostics
-call qneg3('TPHYSBCc',lchnk  ,ncol, pcols, pver, 1, pcnst, qmin, state%q, .not.use_mass_borrower )
+    ! make sure tracers are all positive, again - if use_mass_borrower then just print diagnostics
+    call qneg3('TPHYSBCc',lchnk  ,ncol, pcols, pver, 1, pcnst, qmin, state%q, .not.use_mass_borrower )
 
-if(use_mass_borrower) then
-! tracer borrower for mass conservation 
-do m = 1, pcnst
-call massborrow("PHYBC02",lchnk,ncol,state%psetcols,m,m,qmin(m),state%q(1,1,m),state%pdel)
-end do
-end if
+    if(use_mass_borrower) then
+      ! tracer borrower for mass conservation 
+      do m = 1, pcnst
+        call massborrow("PHYBC02",lchnk,ncol,state%psetcols,m,m,qmin(m),state%q(1,1,m),state%pdel)
+      end do
+    end if
 
-call check_water(state, tend, "PHYBC02", nstep, ztodt)
+    call check_water(state, tend, "PHYBC02", nstep, ztodt)
 
-! Dump out "before physics" state
-call diag_state_b4_phys_write (state)
+    ! Dump out "before physics" state
+    call diag_state_b4_phys_write (state)
 
-call t_stopf('bc_init')
+    call t_stopf('bc_init')
 
-!-----------------------------------------------------------------------------
-! Global mean total energy fixer
-!-----------------------------------------------------------------------------
-if (l_bc_energy_fix) then
+    !-----------------------------------------------------------------------------
+    ! Global mean total energy fixer
+    !-----------------------------------------------------------------------------
+    if (l_bc_energy_fix) then
 
-call t_startf('energy_fixer')
+      call t_startf('energy_fixer')
 
-tini(:ncol,:pver) = state%t(:ncol,:pver)
+      tini(:ncol,:pver) = state%t(:ncol,:pver)
 
-call check_energy_fix(state, ptend, nstep, flx_heat)
-call physics_update(state, ptend, ztodt, tend)
-call check_energy_chng(state, tend, "chkengyfix", nstep, ztodt, zero, zero, zero, flx_heat)
+      call check_energy_fix(state, ptend, nstep, flx_heat)
+      call physics_update(state, ptend, ztodt, tend)
+      call check_energy_chng(state, tend, "chkengyfix", nstep, ztodt, zero, zero, zero, flx_heat)
 
-! Save state for convective tendency calculations.
-call diag_conv_tend_ini(state, pbuf)
+      ! Save state for convective tendency calculations.
+      call diag_conv_tend_ini(state, pbuf)
 
-call cnst_get_ind('CLDLIQ', ixcldliq)
-call cnst_get_ind('CLDICE', ixcldice)
+      call cnst_get_ind('CLDLIQ', ixcldliq)
+      call cnst_get_ind('CLDICE', ixcldice)
 
-qini     (:ncol,:pver) = state%q(:ncol,:pver,       1)
-cldliqini(:ncol,:pver) = state%q(:ncol,:pver,ixcldliq)
-cldiceini(:ncol,:pver) = state%q(:ncol,:pver,ixcldice)
+      qini     (:ncol,:pver) = state%q(:ncol,:pver,       1)
+      cldliqini(:ncol,:pver) = state%q(:ncol,:pver,ixcldliq)
+      cldiceini(:ncol,:pver) = state%q(:ncol,:pver,ixcldice)
 
-call outfld('TEOUT', teout       , pcols, lchnk   )
-call outfld('TEINP', state%te_ini, pcols, lchnk   )
-call outfld('TEFIX', state%te_cur, pcols, lchnk   )
+      call outfld('TEOUT', teout       , pcols, lchnk   )
+      call outfld('TEINP', state%te_ini, pcols, lchnk   )
+      call outfld('TEFIX', state%te_cur, pcols, lchnk   )
 
-! set and output the dse change due to dynpkg
-if( nstep > dyn_time_lvls-1 ) then
-do k = 1,pver
-dtcore(:ncol,k) = (tini(:ncol,k) - dtcore(:ncol,k))/(ztodt) + tend%dTdt(:ncol,k)
-end do
-call outfld( 'DTCORE', dtcore, pcols, lchnk )
-end if
+      ! set and output the dse change due to dynpkg
+      if( nstep > dyn_time_lvls-1 ) then
+        do k = 1,pver
+          dtcore(:ncol,k) = (tini(:ncol,k) - dtcore(:ncol,k))/(ztodt) + tend%dTdt(:ncol,k)
+        end do
+        call outfld( 'DTCORE', dtcore, pcols, lchnk )
+      end if
 
-call t_stopf('energy_fixer')
+      call t_stopf('energy_fixer')
 
-end if
+    end if
 
-!-----------------------------------------------------------------------------
-! Dry adjustment
-!-----------------------------------------------------------------------------
-if (l_dry_adj) then
+    !-----------------------------------------------------------------------------
+    ! Dry adjustment
+    !-----------------------------------------------------------------------------
+    if (l_dry_adj) then
 
-call t_startf('dry_adjustment')
+      call t_startf('dry_adjustment')
 
-! Copy state info for input to dadadj
-! This is a kludge so dadadj doesn't have to be reformulated for DSE
-! This code block is not a good example of interfacing a parameterization
-lq(:) = .FALSE.
-lq(1) = .TRUE.
-call physics_ptend_init(ptend, state%psetcols, 'dadadj', ls=.true., lq=lq)
-ptend%s(:ncol,:pver)   = state%t(:ncol,:pver)
-ptend%q(:ncol,:pver,1) = state%q(:ncol,:pver,1)
+      ! Copy state info for input to dadadj
+      ! This is a kludge so dadadj doesn't have to be reformulated for DSE
+      ! This code block is not a good example of interfacing a parameterization
+      lq(:) = .FALSE.
+      lq(1) = .TRUE.
+      call physics_ptend_init(ptend, state%psetcols, 'dadadj', ls=.true., lq=lq)
+      ptend%s(:ncol,:pver)   = state%t(:ncol,:pver)
+      ptend%q(:ncol,:pver,1) = state%q(:ncol,:pver,1)
 
-call dadadj (lchnk, ncol, state%pmid, state%pint, state%pdel, ptend%s, ptend%q(1,1,1))
+      call dadadj (lchnk, ncol, state%pmid, state%pint, state%pdel, ptend%s, ptend%q(1,1,1))
 
-ptend%s(:ncol,:)   = (ptend%s(:ncol,:)   - state%t(:ncol,:)  )/ztodt * cpair
-ptend%q(:ncol,:,1) = (ptend%q(:ncol,:,1) - state%q(:ncol,:,1))/ztodt
+      ptend%s(:ncol,:)   = (ptend%s(:ncol,:)   - state%t(:ncol,:)  )/ztodt * cpair
+      ptend%q(:ncol,:,1) = (ptend%q(:ncol,:,1) - state%q(:ncol,:,1))/ztodt
 
-call physics_update(state, ptend, ztodt, tend)
-call t_stopf('dry_adjustment')
+      call physics_update(state, ptend, ztodt, tend)
+      call t_stopf('dry_adjustment')
 
-end if
+    end if
 
-!-----------------------------------------------------------------------------
-! MMF surface flux bypass
-!-----------------------------------------------------------------------------
+    !-----------------------------------------------------------------------------
+    ! MMF surface flux bypass
+    !-----------------------------------------------------------------------------
 #if defined( MMF_FLUX_BYPASS )
 
-! Check if LHF exceeds the total moisture content of the lowest layer
-call qneg4('TPHYSBC ', lchnk, ncol, ztodt, &
-state%q(1,pver,1), state%rpdel(1,pver), &
-cam_in%shf, cam_in%lhf, cam_in%cflx )
+  ! Check if LHF exceeds the total moisture content of the lowest layer
+  call qneg4('TPHYSBC ', lchnk, ncol, ztodt, &
+              state%q(1,pver,1), state%rpdel(1,pver), &
+              cam_in%shf, cam_in%lhf, cam_in%cflx )
 
-call crm_surface_flux_bypass_tend(state, cam_in, ptend)
-call physics_update(state, ptend, ztodt, tend)  
-call check_energy_chng(state, tend, "crm_tend", nstep, ztodt,  &
-         cam_in%shf(:), zero, zero, cam_in%cflx(:,1)) 
+  call crm_surface_flux_bypass_tend(state, cam_in, ptend)
+  call physics_update(state, ptend, ztodt, tend)  
+  call check_energy_chng(state, tend, "crm_tend", nstep, ztodt,  &
+                         cam_in%shf(:), zero, zero, cam_in%cflx(:,1)) 
 #endif
 
-end subroutine tphysbc1
+  end subroutine tphysbc1
 
 !===================================================================================================
 !===================================================================================================
 
-subroutine tphysbc2(ztodt, fsns, fsnt, flns, flnt, &
-   state, tend, pbuf, fsds, &
-   sgh, sgh30, cam_out, cam_in, crm_ecpp_output )
-!----------------------------------------------------------------------------- 
-! Purpose: Evaluate physics processes BEFORE coupling to sfc components
-!          Phase 2 - aerosols, radiation, and diagnostics
-!
-! Pass surface fields for separate surface flux calculations
-! Dump appropriate fields to history file.
-!-----------------------------------------------------------------------------
-use physics_buffer,         only: physics_buffer_desc, pbuf_get_field
-use physics_buffer,         only: pbuf_get_index, pbuf_old_tim_idx
-use physics_buffer,         only: dyn_time_lvls
-use physics_types,          only: physics_ptend_init, physics_ptend_sum, &
-                    physics_state_check, physics_ptend_scale
-use cam_diagnostics,        only: diag_conv_tend_ini, diag_phys_writeout, diag_conv, &
-                    diag_export, diag_state_b4_phys_write
-use cam_history,            only: outfld, fieldname_len
-use physconst,              only: cpair, latvap, gravit, rga
-use constituents,           only: pcnst, qmin, cnst_get_ind
-use time_manager,           only: get_nstep
-use check_energy,           only: check_energy_chng, & 
-                    check_tracers_data, check_tracers_init, &
-                    check_tracers_chng, check_tracers_fini
-use aero_model,             only: aero_model_wetdep
-use modal_aero_calcsize,    only: modal_aero_calcsize_sub
-use modal_aero_wateruptake, only: modal_aero_wateruptake_dr
-use radiation,              only: radiation_tend
-use tropopause,             only: tropopause_output
-use output_aerocom_aie,     only: do_aerocom_ind3, cloud_top_aerocom
-use cloud_diagnostics,      only: cloud_diagnostics_calc
-use crm_ecpp_output_module, only: crm_ecpp_output_type
-use camsrfexch,             only: cam_export
+  subroutine tphysbc2(ztodt, fsns, fsnt, flns, flnt, &
+                      state, tend, pbuf, fsds, &
+                      sgh, sgh30, cam_out, cam_in, crm_ecpp_output )
+    !----------------------------------------------------------------------------- 
+    ! Purpose: Evaluate physics processes BEFORE coupling to sfc components
+    !          Phase 2 - aerosols, radiation, and diagnostics
+    !
+    ! Pass surface fields for separate surface flux calculations
+    ! Dump appropriate fields to history file.
+    !-----------------------------------------------------------------------------
+    use physics_buffer,         only: physics_buffer_desc, pbuf_get_field
+    use physics_buffer,         only: pbuf_get_index, pbuf_old_tim_idx
+    use physics_buffer,         only: dyn_time_lvls
+    use physics_types,          only: physics_ptend_init, physics_ptend_sum, &
+                        physics_state_check, physics_ptend_scale
+    use cam_diagnostics,        only: diag_conv_tend_ini, diag_phys_writeout, diag_conv, &
+                        diag_export, diag_state_b4_phys_write
+    use cam_history,            only: outfld, fieldname_len
+    use physconst,              only: cpair, latvap, gravit, rga
+    use constituents,           only: pcnst, qmin, cnst_get_ind
+    use time_manager,           only: get_nstep
+    use check_energy,           only: check_energy_chng, & 
+                        check_tracers_data, check_tracers_init, &
+                        check_tracers_chng, check_tracers_fini
+    use aero_model,             only: aero_model_wetdep
+    use modal_aero_calcsize,    only: modal_aero_calcsize_sub
+    use modal_aero_wateruptake, only: modal_aero_wateruptake_dr
+    use radiation,              only: radiation_tend
+    use tropopause,             only: tropopause_output
+    use output_aerocom_aie,     only: do_aerocom_ind3, cloud_top_aerocom
+    use cloud_diagnostics,      only: cloud_diagnostics_calc
+    use crm_ecpp_output_module, only: crm_ecpp_output_type
+    use camsrfexch,             only: cam_export
 #if defined( ECPP )
-use module_ecpp_ppdriver2, only: parampollu_driver2
-use module_data_ecpp1,     only: dtstep_pp_input
-use crmclouds_camaerosols, only: crmclouds_mixnuc_tend
+    use module_ecpp_ppdriver2, only: parampollu_driver2
+    use module_data_ecpp1,     only: dtstep_pp_input
+    use crmclouds_camaerosols, only: crmclouds_mixnuc_tend
 #endif
-implicit none
-!-----------------------------------------------------------------------------
-! Interface Arguments
-!-----------------------------------------------------------------------------
-real(r8),                  intent(in   ) :: ztodt         ! 2 delta t (model time increment)
-real(r8),                  intent(inout) :: fsns(pcols)   ! Surface solar absorbed flux
-real(r8),                  intent(inout) :: fsnt(pcols)   ! Net column abs solar flux at model top
-real(r8),                  intent(inout) :: flns(pcols)   ! Srf longwave cooling (up-down) flux
-real(r8),                  intent(inout) :: flnt(pcols)   ! Net outgoing lw flux at model top
-real(r8),                  intent(inout) :: fsds(pcols)   ! Surface solar down flux
-real(r8),                  intent(in   ) :: sgh(pcols)    ! Std. deviation of orography
-real(r8),                  intent(in   ) :: sgh30(pcols)  ! Std. deviation of 30 s orography for tms
-type(physics_state),       intent(inout) :: state
-type(physics_tend ),       intent(inout) :: tend
-type(physics_buffer_desc), pointer       :: pbuf(:)
-type(cam_out_t),           intent(inout) :: cam_out
-type(cam_in_t),            intent(in   ) :: cam_in
-type(crm_ecpp_output_type),intent(inout) :: crm_ecpp_output   ! CRM output data for ECPP calculations
-!-----------------------------------------------------------------------------
-! Local variables
-!-----------------------------------------------------------------------------
-type(physics_ptend)   :: ptend            ! indivdual parameterization tendencies
-type(physics_state)   :: state_alt        ! alt state for CRM input
-integer  :: nstep                         ! current timestep number
-real(r8) :: net_flx(pcols)
-real(r8) :: cmfmc2(pcols,pverp)           ! Moist convection cloud mass flux
-real(r8) :: dlf(pcols,pver)               ! Detraining cld H20 from shallow + deep convections
-real(r8) :: dlf2(pcols,pver)              ! Detraining cld H20 from shallow convections
-integer  :: lchnk                         ! chunk identifier
-integer  :: ncol                          ! number of atmospheric columns
-integer  :: ierr
-integer  :: i,k,m,ihist                   ! Longitude, level, constituent indices
+    implicit none
+    !-----------------------------------------------------------------------------
+    ! Interface Arguments
+    !-----------------------------------------------------------------------------
+    real(r8),                  intent(in   ) :: ztodt         ! 2 delta t (model time increment)
+    real(r8),                  intent(inout) :: fsns(pcols)   ! Surface solar absorbed flux
+    real(r8),                  intent(inout) :: fsnt(pcols)   ! Net column abs solar flux at model top
+    real(r8),                  intent(inout) :: flns(pcols)   ! Srf longwave cooling (up-down) flux
+    real(r8),                  intent(inout) :: flnt(pcols)   ! Net outgoing lw flux at model top
+    real(r8),                  intent(inout) :: fsds(pcols)   ! Surface solar down flux
+    real(r8),                  intent(in   ) :: sgh(pcols)    ! Std. deviation of orography
+    real(r8),                  intent(in   ) :: sgh30(pcols)  ! Std. deviation of 30 s orography for tms
+    type(physics_state),       intent(inout) :: state
+    type(physics_tend ),       intent(inout) :: tend
+    type(physics_buffer_desc), pointer       :: pbuf(:)
+    type(cam_out_t),           intent(inout) :: cam_out
+    type(cam_in_t),            intent(in   ) :: cam_in
+    type(crm_ecpp_output_type),intent(inout) :: crm_ecpp_output   ! CRM output data for ECPP calculations
+    !-----------------------------------------------------------------------------
+    ! Local variables
+    !-----------------------------------------------------------------------------
+    type(physics_ptend)   :: ptend            ! indivdual parameterization tendencies
+    type(physics_state)   :: state_alt        ! alt state for CRM input
+    integer  :: nstep                         ! current timestep number
+    real(r8) :: net_flx(pcols)
+    real(r8) :: cmfmc2(pcols,pverp)           ! Moist convection cloud mass flux
+    real(r8) :: dlf(pcols,pver)               ! Detraining cld H20 from shallow + deep convections
+    real(r8) :: dlf2(pcols,pver)              ! Detraining cld H20 from shallow convections
+    integer  :: lchnk                         ! chunk identifier
+    integer  :: ncol                          ! number of atmospheric columns
+    integer  :: ierr
+    integer  :: i,k,m,ihist                   ! Longitude, level, constituent indices
 
-real(r8) :: sh_e_ed_ratio(pcols,pver)      ! shallow conv [ent/(ent+det)] ratio 
+    real(r8) :: sh_e_ed_ratio(pcols,pver)      ! shallow conv [ent/(ent+det)] ratio 
 
-! pbuf fields
-integer itim_old
-real(r8), pointer, dimension(:,:) :: cld  ! cloud fraction
-real(r8), pointer, dimension(:,:) :: cldo ! old cloud fraction
+    ! pbuf fields
+    integer itim_old
+    real(r8), pointer, dimension(:,:) :: cld  ! cloud fraction
+    real(r8), pointer, dimension(:,:) :: cldo ! old cloud fraction
 
-! energy checking variables
-real(r8) :: zero(pcols)                    ! array of zeros
-type(check_tracers_data):: tracerint       ! energy integrals and cummulative boundary fluxes
-real(r8) :: zero_tracers(pcols,pcnst)
+    ! energy checking variables
+    real(r8) :: zero(pcols)                    ! array of zeros
+    type(check_tracers_data):: tracerint       ! energy integrals and cummulative boundary fluxes
+    real(r8) :: zero_tracers(pcols,pcnst)
 
-logical   :: lq(pcnst)
+    logical   :: lq(pcnst)
 
-character(len=fieldname_len)   :: varname, vsuffix
+    character(len=fieldname_len)   :: varname, vsuffix
 
-!BSINGH - these were moved from zm_conv_intr because they are  used by aero_model_wetdep 
-real(r8), dimension(pcols,pver) :: mu, eu, du, md, ed, dp
-real(r8):: dsubcld(pcols) ! wg layer thickness in mbs (between upper/lower interface).
-integer :: jt(pcols)      ! wg layer thickness in mbs between lcl and maxi.    
-integer :: maxg(pcols)    ! wg top  level index of deep cumulus convection.
-integer :: ideep(pcols)   ! wg gathered values of maxi.
-integer :: lengath        ! w holds position of gathered points vs longitude index
+    !BSINGH - these were moved from zm_conv_intr because they are  used by aero_model_wetdep 
+    real(r8), dimension(pcols,pver) :: mu, eu, du, md, ed, dp
+    real(r8):: dsubcld(pcols) ! wg layer thickness in mbs (between upper/lower interface).
+    integer :: jt(pcols)      ! wg layer thickness in mbs between lcl and maxi.    
+    integer :: maxg(pcols)    ! wg top  level index of deep cumulus convection.
+    integer :: ideep(pcols)   ! wg gathered values of maxi.
+    integer :: lengath        ! w holds position of gathered points vs longitude index
 
-logical :: l_tracer_aero, l_rad
+    logical :: l_tracer_aero, l_rad
 
-logical           :: use_ECPP
-real(r8), pointer :: mmf_clear_rh(:,:) ! CRM clear air relative humidity used for aerosol water uptake
+    logical           :: use_ECPP
+    real(r8), pointer :: mmf_clear_rh(:,:) ! CRM clear air relative humidity used for aerosol water uptake
 
-! ECPP variables
-real(r8),pointer,dimension(:)   :: pblh              ! PBL height (for ECPP)
-real(r8),pointer,dimension(:,:) :: acldy_cen_tbeg    ! cloud fraction
-real(r8)                        :: dtstep_pp         ! ECPP time step (seconds)
-integer                         :: necpp             ! number of GCM time steps in which ECPP is called once
+    ! ECPP variables
+    real(r8),pointer,dimension(:)   :: pblh              ! PBL height (for ECPP)
+    real(r8),pointer,dimension(:,:) :: acldy_cen_tbeg    ! cloud fraction
+    real(r8)                        :: dtstep_pp         ! ECPP time step (seconds)
+    integer                         :: necpp             ! number of GCM time steps in which ECPP is called once
 
-call phys_getopts( l_tracer_aero_out      = l_tracer_aero      &
-    ,l_rad_out              = l_rad              &
-    ,use_ECPP_out           = use_ECPP           )
+    call phys_getopts( l_tracer_aero_out      = l_tracer_aero      &
+                      ,l_rad_out              = l_rad              &
+                      ,use_ECPP_out           = use_ECPP           )
 
-!-----------------------------------------------------------------------------
-! Initialize stuff
-!-----------------------------------------------------------------------------
-call t_startf('bc_init')
+    !-----------------------------------------------------------------------------
+    ! Initialize stuff
+    !-----------------------------------------------------------------------------
+    call t_startf('bc_init')
 
-zero = 0._r8
-zero_tracers(:,:) = 0._r8
-lchnk = state%lchnk
-ncol  = state%ncol
-nstep = get_nstep()
+    zero = 0._r8
+    zero_tracers(:,:) = 0._r8
+    lchnk = state%lchnk
+    ncol  = state%ncol
+    nstep = get_nstep()
 
-if (pergro_test_active) then 
-!call outfld calls
-do ihist = 1 , nvars_prtrb_hist
-vsuffix  = trim(adjustl(hist_vars(ihist)))
-varname  = trim(adjustl(vsuffix))//'_topphysbc2' ! form variable name
-call outfld( trim(adjustl(varname)),get_var(state,vsuffix), pcols , lchnk )
-enddo
-endif
+    if (pergro_test_active) then 
+      !call outfld calls
+      do ihist = 1 , nvars_prtrb_hist
+        vsuffix  = trim(adjustl(hist_vars(ihist)))
+        varname  = trim(adjustl(vsuffix))//'_topphysbc2' ! form variable name
+        call outfld( trim(adjustl(varname)),get_var(state,vsuffix), pcols , lchnk )
+      enddo
+    endif
 
-call pbuf_get_field(pbuf, mmf_clear_rh_idx, mmf_clear_rh )
+    call pbuf_get_field(pbuf, mmf_clear_rh_idx, mmf_clear_rh )
 
-! compute mass integrals of input tracers state
-call check_tracers_init(state, tracerint)
+    ! compute mass integrals of input tracers state
+    call check_tracers_init(state, tracerint)
 
-!-----------------------------------------------------------------------------
-! Modal aerosol wet radius for radiative calculation
-!-----------------------------------------------------------------------------
+    !-----------------------------------------------------------------------------
+    ! Modal aerosol wet radius for radiative calculation
+    !-----------------------------------------------------------------------------
 #if defined( ECPP ) && defined(MODAL_AERO)
-! temporarily turn on all lq, so it is allocated
-lq(:) = .true.
-call physics_ptend_init(ptend, state%psetcols, 'crm - modal_aero_wateruptake_dr', lq=lq)
+    ! temporarily turn on all lq, so it is allocated
+    lq(:) = .true.
+    call physics_ptend_init(ptend, state%psetcols, 'crm - modal_aero_wateruptake_dr', lq=lq)
 
-call t_startf('modal_aero_mmf')
+    call t_startf('modal_aero_mmf')
 
-! set all ptend%lq to false as they will be set in modal_aero_calcsize_sub
-ptend%lq(:) = .false.
-call modal_aero_calcsize_sub (state, ztodt, pbuf, ptend)
-call modal_aero_wateruptake_dr(state, pbuf, clear_rh_in=mmf_clear_rh)
+    ! set all ptend%lq to false as they will be set in modal_aero_calcsize_sub
+    ptend%lq(:) = .false.
+    call modal_aero_calcsize_sub (state, ztodt, pbuf, ptend)
+    call modal_aero_wateruptake_dr(state, pbuf, clear_rh_in=mmf_clear_rh)
 
-! ECPP handles aerosol wet deposition, so tendency from wet depostion is 
-! not updated in mz_aero_wet_intr (mz_aerosols_intr.F90), but tendencies
-! from other parts of crmclouds_aerosol_wet_intr() are still updated here.
-call physics_update (state, ptend, ztodt, tend)
-call t_stopf('modal_aero_mmf')
+    ! ECPP handles aerosol wet deposition, so tendency from wet depostion is 
+    ! not updated in mz_aero_wet_intr (mz_aerosols_intr.F90), but tendencies
+    ! from other parts of crmclouds_aerosol_wet_intr() are still updated here.
+    call physics_update (state, ptend, ztodt, tend)
+    call t_stopf('modal_aero_mmf')
 
-call check_energy_chng(state, tend, "modal_aero_mmf", nstep, ztodt, &
-         zero, zero, zero, zero)
+    call check_energy_chng(state, tend, "modal_aero_mmf", nstep, ztodt, &
+             zero, zero, zero, zero)
 
 #endif /* ECPP and MODAL_AERO */
 !-----------------------------------------------------------------------------
 ! ECPP - Explicit-Cloud Parameterized-Pollutant
 !-----------------------------------------------------------------------------
 #if defined( ECPP )
-if (use_ECPP) then
+    if (use_ECPP) then
 
-call pbuf_get_field(pbuf, pbuf_get_index('pblh'), pblh)
-call pbuf_get_field(pbuf, pbuf_get_index('ACLDY_CEN'), acldy_cen_tbeg)
+      call pbuf_get_field(pbuf, pbuf_get_index('pblh'), pblh)
+      call pbuf_get_field(pbuf, pbuf_get_index('ACLDY_CEN'), acldy_cen_tbeg)
 
-dtstep_pp = dtstep_pp_input
-necpp = dtstep_pp/ztodt
+      dtstep_pp = dtstep_pp_input
+      necpp = dtstep_pp/ztodt
 
-if (nstep.ne.0 .and. mod(nstep, necpp).eq.0) then
+      if (nstep.ne.0 .and. mod(nstep, necpp).eq.0) then
 
-! aerosol tendency from droplet activation and mixing
-! cldo and cldn are set to be the same in crmclouds_mixnuc_tend,
-! So only turbulence mixing is done here.
-call t_startf('crmclouds_mixnuc')
-call crmclouds_mixnuc_tend(state, ptend, dtstep_pp,           &
-                 cam_in%cflx, pblh, pbuf,           &
-                 crm_ecpp_output%wwqui_cen,         &
-                 crm_ecpp_output%wwqui_cloudy_cen,  &
-                 crm_ecpp_output%wwqui_bnd,         &
-                 crm_ecpp_output%wwqui_cloudy_bnd,  &
-                 species_class)
-call physics_update(state, ptend, dtstep_pp, tend)
-call t_stopf('crmclouds_mixnuc')
+        ! aerosol tendency from droplet activation and mixing
+        ! cldo and cldn are set to be the same in crmclouds_mixnuc_tend,
+        ! So only turbulence mixing is done here.
+        call t_startf('crmclouds_mixnuc')
+        call crmclouds_mixnuc_tend(state, ptend, dtstep_pp,           &
+                         cam_in%cflx, pblh, pbuf,           &
+                         crm_ecpp_output%wwqui_cen,         &
+                         crm_ecpp_output%wwqui_cloudy_cen,  &
+                         crm_ecpp_output%wwqui_bnd,         &
+                         crm_ecpp_output%wwqui_cloudy_bnd,  &
+                         species_class)
+        call physics_update(state, ptend, dtstep_pp, tend)
+        call t_stopf('crmclouds_mixnuc')
 
-! ECPP interface
-call t_startf('ecpp')
-call parampollu_driver2(state, ptend, pbuf, dtstep_pp, dtstep_pp,   &
-              crm_ecpp_output%acen,       crm_ecpp_output%abnd,         &
-              crm_ecpp_output%acen_tf,    crm_ecpp_output%abnd_tf,      &
-              crm_ecpp_output%massflxbnd, crm_ecpp_output%rhcen,        &
-              crm_ecpp_output%qcloudcen,  crm_ecpp_output%qlsinkcen,    &
-              crm_ecpp_output%precrcen,   crm_ecpp_output%precsolidcen, &
-              acldy_cen_tbeg)
-call physics_update(state, ptend, dtstep_pp, tend)
-call t_stopf ('ecpp')
+        ! ECPP interface
+        call t_startf('ecpp')
+        call parampollu_driver2(state, ptend, pbuf, dtstep_pp, dtstep_pp,   &
+                      crm_ecpp_output%acen,       crm_ecpp_output%abnd,         &
+                      crm_ecpp_output%acen_tf,    crm_ecpp_output%abnd_tf,      &
+                      crm_ecpp_output%massflxbnd, crm_ecpp_output%rhcen,        &
+                      crm_ecpp_output%qcloudcen,  crm_ecpp_output%qlsinkcen,    &
+                      crm_ecpp_output%precrcen,   crm_ecpp_output%precsolidcen, &
+                      acldy_cen_tbeg)
+        call physics_update(state, ptend, dtstep_pp, tend)
+        call t_stopf ('ecpp')
 
-end if ! nstep.ne.0 .and. mod(nstep, necpp).eq.0
+      end if ! nstep.ne.0 .and. mod(nstep, necpp).eq.0
 
-end if ! use_ECPP
+    end if ! use_ECPP
 #endif /* ECPP */
-!-----------------------------------------------------------------------------
-! save old CRM cloud fraction - w/o CRM, this is done in cldwat2m.F90
-!-----------------------------------------------------------------------------
-itim_old = pbuf_old_tim_idx()
-call pbuf_get_field(pbuf,pbuf_get_index('CLDO'),cldo,start=(/1,1,itim_old/),kount=(/pcols,pver,1/))
-call pbuf_get_field(pbuf,pbuf_get_index('CLD') ,cld ,start=(/1,1,itim_old/),kount=(/pcols,pver,1/))
+    !-----------------------------------------------------------------------------
+    ! save old CRM cloud fraction - w/o CRM, this is done in cldwat2m.F90
+    !-----------------------------------------------------------------------------
+    itim_old = pbuf_old_tim_idx()
+    call pbuf_get_field(pbuf,pbuf_get_index('CLDO'),cldo,start=(/1,1,itim_old/),kount=(/pcols,pver,1/))
+    call pbuf_get_field(pbuf,pbuf_get_index('CLD') ,cld ,start=(/1,1,itim_old/),kount=(/pcols,pver,1/))
 
-cldo(1:ncol,1:pver) = cld(1:ncol,1:pver)
+    cldo(1:ncol,1:pver) = cld(1:ncol,1:pver)
 
-!-----------------------------------------------------------------------------
-! Aerosol stuff
-!-----------------------------------------------------------------------------
-if (l_tracer_aero) then
-if (use_ECPP) then
-! With MMF + ECPP we can skip the conventional aerosol routines
-else
-! Aerosol wet chemistry determines scavenging and transformations.
-! This is followed by convective transport of all trace species except
-! water vapor and condensate. Scavenging needs to occur prior to
-! transport in order to determine interstitial fraction.
+    !-----------------------------------------------------------------------------
+    ! Aerosol stuff
+    !-----------------------------------------------------------------------------
+    if (l_tracer_aero) then
+      if (use_ECPP) then
+        ! With MMF + ECPP we can skip the conventional aerosol routines
+      else
+        ! Aerosol wet chemistry determines scavenging and transformations.
+        ! This is followed by convective transport of all trace species except
+        ! water vapor and condensate. Scavenging needs to occur prior to
+        ! transport in order to determine interstitial fraction.
 
-! Without ECPP we should be using prescribed aerosols, so we only
-! need to consider the wet deposition and water uptake for radiation
+        ! Without ECPP we should be using prescribed aerosols, so we only
+        ! need to consider the wet deposition and water uptake for radiation
 
-! Aerosol wet removal (including aerosol water uptake)
-call t_startf('aero_model_wetdep')
-call aero_model_wetdep( ztodt, dlf, dlf2, cmfmc2, state,  & ! inputs
-sh_e_ed_ratio, mu, md, du, eu, ed, dp, dsubcld,    &
-jt, maxg, ideep, lengath, species_class,           &
-cam_out, pbuf, ptend,                              & ! outputs
-clear_rh=mmf_clear_rh) ! clear air relative humidity for water uptake
-call physics_update(state, ptend, ztodt, tend)
-call t_stopf('aero_model_wetdep')
+        ! Aerosol wet removal (including aerosol water uptake)
+        call t_startf('aero_model_wetdep')
+        call aero_model_wetdep( ztodt, dlf, dlf2, cmfmc2, state,  & ! inputs
+                                sh_e_ed_ratio, mu, md, du, eu, ed, dp, dsubcld,    &
+                                jt, maxg, ideep, lengath, species_class,           &
+                                cam_out, pbuf, ptend,                              & ! outputs
+                                clear_rh=mmf_clear_rh) ! clear air relative humidity for water uptake
+        call physics_update(state, ptend, ztodt, tend)
+        call t_stopf('aero_model_wetdep')
 
-! check tracer integrals
-call check_tracers_chng(state, tracerint, "aero_model_wetdep", nstep, ztodt,  zero_tracers)
+        ! check tracer integrals
+        call check_tracers_chng(state, tracerint, "aero_model_wetdep", nstep, ztodt,  zero_tracers)
 
-end if
-end if ! l_tracer_aero
-
-#ifndef MMF_NN_EMULATOR
-! in mmf_nn_emulator_driver, this block is included, so need to skip when MMF_NN_EMULATOR is defined
-! even not executing this block, it won't influence the radiation_tend, which won't use cam_out%psl
-!-----------------------------------------------------------------------------
-! Moist physical parameteriztions complete: 
-! send dynamical variables, and derived variables to history file
-!-----------------------------------------------------------------------------
-call t_startf('bc_history_write')
-call diag_phys_writeout(state, cam_out%psl)
-call diag_conv(state, ztodt, pbuf)
-call t_stopf('bc_history_write')
-
-!-----------------------------------------------------------------------------
-! Write cloud diagnostics on history file
-!-----------------------------------------------------------------------------
-call t_startf('bc_cld_diag_history_write')
-call cloud_diagnostics_calc(state, pbuf)
-call t_stopf('bc_cld_diag_history_write')
-#endif
-
-!-----------------------------------------------------------------------------
-! Radiation computations
-!-----------------------------------------------------------------------------
-if (l_rad) then
-call t_startf('radiation')
-call radiation_tend(state,ptend, pbuf, cam_out, cam_in, &
-        cam_in%landfrac, cam_in%icefrac, cam_in%snowhland, &
-        fsns, fsnt, flns, flnt, fsds, &
-        net_flx, is_cmip6_volc, ztodt, clear_rh=mmf_clear_rh)
-call t_stopf('radiation')
-
-! We don't need to call physics_update or check_energy_chng for the MMF
-! because the radiative tendency is added within the call to crm_physics_tend
-! seems that it will update the crm_rad etc in pbuf, this will update the state in the next call to crm_physics_tend and crm_module
-
-end if ! l_rad
-
-!-----------------------------------------------------------------------------
-! Diagnostics
-!-----------------------------------------------------------------------------
-
-call t_startf('tphysbc_diagnostics')
-
-if(do_aerocom_ind3) call cloud_top_aerocom(state, pbuf) 
+      end if
+    end if ! l_tracer_aero
 
 #ifndef MMF_NN_EMULATOR
-! in mmf_nn_emulator_driver, this block is included, so need to skip when MMF_NN_EMULATOR is defined
-! Diagnose the location of the tropopause
-call tropopause_output(state)
+    ! in mmf_nn_emulator_driver, this block is included, so need to skip when MMF_NN_EMULATOR is defined
+    ! even not executing this block, it won't influence the radiation_tend, which won't use cam_out%psl
+    !-----------------------------------------------------------------------------
+    ! Moist physical parameteriztions complete: 
+    ! send dynamical variables, and derived variables to history file
+    !-----------------------------------------------------------------------------
+    call t_startf('bc_history_write')
+    call diag_phys_writeout(state, cam_out%psl)
+    call diag_conv(state, ztodt, pbuf)
+    call t_stopf('bc_history_write')
 
-! Save atmospheric fields to force surface models
-call cam_export(state,cam_out,pbuf)
-
-! Write export state to history file
-call diag_export(cam_out)
+    !-----------------------------------------------------------------------------
+    ! Write cloud diagnostics on history file
+    !-----------------------------------------------------------------------------
+    call t_startf('bc_cld_diag_history_write')
+    call cloud_diagnostics_calc(state, pbuf)
+    call t_stopf('bc_cld_diag_history_write')
 #endif
 
-call check_tracers_fini(tracerint)
+    !-----------------------------------------------------------------------------
+    ! Radiation computations
+    !-----------------------------------------------------------------------------
+    if (l_rad) then
+      call t_startf('radiation')
+      call radiation_tend(state,ptend, pbuf, cam_out, cam_in, &
+              cam_in%landfrac, cam_in%icefrac, cam_in%snowhland, &
+              fsns, fsnt, flns, flnt, fsds, &
+              net_flx, is_cmip6_volc, ztodt, clear_rh=mmf_clear_rh)
+      call t_stopf('radiation')
 
-call t_stopf('tphysbc_diagnostics')
+      ! We don't need to call physics_update or check_energy_chng for the MMF
+      ! because the radiative tendency is added within the call to crm_physics_tend
+      ! seems that it will update the crm_rad etc in pbuf, this will update the state in the next call to crm_physics_tend and crm_module
 
-!-----------------------------------------------------------------------------
-!-----------------------------------------------------------------------------
-end subroutine tphysbc2
+    end if ! l_rad
+
+    !-----------------------------------------------------------------------------
+    ! Diagnostics
+    !-----------------------------------------------------------------------------
+
+    call t_startf('tphysbc_diagnostics')
+
+    if(do_aerocom_ind3) call cloud_top_aerocom(state, pbuf) 
+
+#ifndef MMF_NN_EMULATOR
+    ! in mmf_nn_emulator_driver, this block is included, so need to skip when MMF_NN_EMULATOR is defined
+    ! Diagnose the location of the tropopause
+    call tropopause_output(state)
+
+    ! Save atmospheric fields to force surface models
+    call cam_export(state,cam_out,pbuf)
+
+    ! Write export state to history file
+    call diag_export(cam_out)
+#endif
+
+    call check_tracers_fini(tracerint)
+
+    call t_stopf('tphysbc_diagnostics')
+
+    !-----------------------------------------------------------------------------
+    !-----------------------------------------------------------------------------
+  end subroutine tphysbc2
 
 subroutine phys_timestep_init(phys_state, cam_in, cam_out, pbuf2d)
 !-----------------------------------------------------------------------------------
