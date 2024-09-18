@@ -93,6 +93,9 @@ contains
    ! local variables
    real(r8) :: input(pcols,inputlength)
    real(r8) :: output(pcols,outputlength)
+   integer, parameter :: in_dims = 2
+   integer :: in_layout(in_dims) = [pcols, inputlength]
+   integer :: out_layout(in_dims) = [pcols, outputlength]
    integer :: i,k,ncol,ixcldice,ixcldliq,ii,kk,idx_trop(pcols),kens, j
    real (r8) :: s_bctend(pcols,pver), q_bctend(pcols,pver), qc_bctend(pcols,pver), qi_bctend(pcols,pver), qafter, safter, &
                 u_bctend(pcols,pver), v_bctend(pcols,pver)
@@ -107,16 +110,12 @@ contains
    real(r8), pointer, dimension(:)   :: lhflx, shflx, taux, tauy ! (/pcols/)
    real(r8), pointer, dimension(:,:) :: ozone, ch4, n2o ! (/pcols,pver/)
 
-   ! wkc originally the input tensors are a wrapped type.
-   ! We don't have wrapped tensors in FTorch. What is its corresponding object?
-   ! Do we need to pass it in as a variable?
-   ! wkc type(torch_tensor_wrap) :: input_tensors
-   type(torch_tensor), dimension(1) :: input_tensor, out_tensor !wkc same as torchftn
+   type(torch_tensor), dimension(1) :: in_tensor, out_tensor !wkc same as torchftn
    real(real32) :: input_torch(inputlength, pcols)
    real(real32), pointer :: output_torch(:, :)
    real(r8) :: math_pi
 
-   math_pi = 3.14159265358979323846_r8 ! To be changed to CESM constants
+   math_pi = 3.14159265358979323846_r8 ! wkc To be changed to CESM constants
 
    ncol  = state%ncol
    call cnst_get_ind('CLDLIQ', ixcldliq)
@@ -280,29 +279,20 @@ end select
         input_torch(k,i) = input(i,k)
       end do
     end do
-    !print *, "Creating input tensor"
-    ! Change this to accommodate FTorch tensors
-    ! call input_tensors%create
     !print *, "Adding input data"
-    ! Adds all the inputs to the input tensor wrapper
-    ! call input_tensors%add_array(input_torch) ! torch_ftna
     call torch_tensor_from_array(in_tensor(1), input_torch,  in_layout, torch_kCPU) ! Ftorch
 
     ! Set the out_tensor before moving forward one time step
     call torch_tensor_from_array(out_tensor(1), out_data, out_layout, torch_kCPU) 
 
-    ! call torch_mod(1)%forward(input_tensors, out_tensor, flags=module_use_inference_mode)
     if (masterproc) write(iulog,*) 'Calling Ftorch!' !ftorch
     print *, "Calling FTorch!"
-    call torch_model_forward(model_pytorch, in_tensor, n_inputs, out_tensor) ! Ftorch
-
-    ! Torch_ftn, changes tensor to array 
-    ! call out_tensor%to_array(output_torch)
+    call torch_model_forward(model_pytorch, in_tensor, out_tensor) ! Ftorch
 
     ! Reversing the order from python to fortran
     do i=1, ncol
       do k=1,outputlength
-        output(i,k) = output_torch(k,i)
+        output(i,k) = output_data(k,i)
       end do
     end do
 
