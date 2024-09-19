@@ -37,6 +37,8 @@ character(len=128),public, protected :: cnst_longname(pcnst) ! long name of cons
 
 ! Namelist variables
 logical, public, protected :: readtrace = .true.  ! true => obtain initial tracer data from IC file
+!water form indices
+  integer, public, protected :: icldice = -1, icldliq = -1, irain = -1, isnow = -1
 
 integer, public, parameter :: cnst_spec_class_undefined   = 0
 integer, public, parameter :: cnst_spec_class_cldphysics  = 1
