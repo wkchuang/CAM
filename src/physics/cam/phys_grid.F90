@@ -2321,35 +2321,35 @@ logical function phys_grid_initialized ()
          proc_stats_r8(:,:) = 0.0_r8
          proc_stats_i4(:,:) = -1
 
-   #if ( defined SPMD )
-         local_proc_stats_r8(1)  = chnk_estcost_lsum
-         local_proc_stats_r8(2)  = chnk_cost_lsum
-         local_proc_stats_r8(3)  = proc_estcost
-         local_proc_stats_r8(4)  = phys_proc_cost
-         call MPI_GATHER(local_proc_stats_r8, 4, MPI_REAL8,   &
-                           proc_stats_r8, 4, MPI_REAL8,         &
-                           masterprocid, mpicom, ierr           )
+#if ( defined SPMD )
+   local_proc_stats_r8(1)  = chnk_estcost_lsum
+   local_proc_stats_r8(2)  = chnk_cost_lsum
+   local_proc_stats_r8(3)  = proc_estcost
+   local_proc_stats_r8(4)  = phys_proc_cost
+   call MPI_GATHER(local_proc_stats_r8, 4, MPI_REAL8,   &
+                     proc_stats_r8, 4, MPI_REAL8,         &
+                     masterprocid, mpicom, ierr           )
 
-         local_proc_stats_i4(1)  = nlthreads
-         local_proc_stats_i4(2)  = nlchunks
-         local_proc_stats_i4(3)  = begchunk
-         local_proc_stats_i4(4)  = endchunk
-         local_proc_stats_i4(5)  = pcols
-         call MPI_GATHER(local_proc_stats_i4, 5, MPI_INTEGER, &
-                           proc_stats_i4, 5, MPI_INTEGER,       &
-                           masterprocid, mpicom, ierr           )
-   #else
-         proc_stats_r8(1,0)  = chnk_estcost_lsum
-         proc_stats_r8(2,0)  = chnk_cost_lsum
-         proc_stats_r8(3,0)  = proc_estcost
-         proc_stats_r8(4,0)  = phys_proc_cost
-         
-         proc_stats_i4(1,0)  = nlthreads
-         proc_stats_i4(2,0)  = nlchunks
-         proc_stats_i4(3,0)  = begchunk
-         proc_stats_i4(4,0)  = endchunk
-         proc_stats_i4(5,0)  = pcols
-   #endif
+   local_proc_stats_i4(1)  = nlthreads
+   local_proc_stats_i4(2)  = nlchunks
+   local_proc_stats_i4(3)  = begchunk
+   local_proc_stats_i4(4)  = endchunk
+   local_proc_stats_i4(5)  = pcols
+   call MPI_GATHER(local_proc_stats_i4, 5, MPI_INTEGER, &
+                     proc_stats_i4, 5, MPI_INTEGER,       &
+                     masterprocid, mpicom, ierr           )
+#else
+   proc_stats_r8(1,0)  = chnk_estcost_lsum
+   proc_stats_r8(2,0)  = chnk_cost_lsum
+   proc_stats_r8(3,0)  = proc_estcost
+   proc_stats_r8(4,0)  = phys_proc_cost
+   
+   proc_stats_i4(1,0)  = nlthreads
+   proc_stats_i4(2,0)  = nlchunks
+   proc_stats_i4(3,0)  = begchunk
+   proc_stats_i4(4,0)  = endchunk
+   proc_stats_i4(5,0)  = pcols
+#endif
 
          ! Gather per chunk data
          if (masterproc) then
@@ -2365,57 +2365,57 @@ logical function phys_grid_initialized ()
          chnk_stats_r8(:,:)    = 0.0_r8
          chnk_stats_i4(:,:)    = -1
 
-   #if ( defined SPMD )
+#if ( defined SPMD )
 
-         if (masterproc) then
-            allocate( recvcnts(0:npes-1) )
-            allocate( displs  (0:npes-1) )
+   if (masterproc) then
+      allocate( recvcnts(0:npes-1) )
+      allocate( displs  (0:npes-1) )
 
-            nlchunks_p  = proc_stats_i4(2,0)
-            recvcnts(0) = nlchunks_p
-            displs(0)   = 0
-            do p=1,npes-1
-               nlchunks_p  = proc_stats_i4(2,p)
-               recvcnts(p) = nlchunks_p
-               displs(p)   = displs(p-1) + recvcnts(p-1)
-            enddo
-         else
-            allocate( displs  (iam:iam) )
-            allocate( recvcnts(iam:iam) )
-            displs(:)      = 0
-            recvcnts(:)    = 0
-         endif
+      nlchunks_p  = proc_stats_i4(2,0)
+      recvcnts(0) = nlchunks_p
+      displs(0)   = 0
+      do p=1,npes-1
+         nlchunks_p  = proc_stats_i4(2,p)
+         recvcnts(p) = nlchunks_p
+         displs(p)   = displs(p-1) + recvcnts(p-1)
+      enddo
+   else
+      allocate( displs  (iam:iam) )
+      allocate( recvcnts(iam:iam) )
+      displs(:)      = 0
+      recvcnts(:)    = 0
+   endif
 
-         do lcid = begchunk, endchunk
-            cid = lchunks(lcid)%cid
+   do lcid = begchunk, endchunk
+      cid = lchunks(lcid)%cid
 
-            local_chnk_stats_r8(1,lcid) = chunks(cid)%estcost
-            local_chnk_stats_r8(2,lcid) = lchunks(lcid)%cost
-            local_chnk_stats_i4(1,lcid) = cid
-            local_chnk_stats_i4(2,lcid) = chunks(cid)%owner
-            local_chnk_stats_i4(3,lcid) = lchunks(lcid)%ncols
-            local_chnk_stats_i4(4,lcid) = chunks(cid)%dcols
-         enddo
+      local_chnk_stats_r8(1,lcid) = chunks(cid)%estcost
+      local_chnk_stats_r8(2,lcid) = lchunks(lcid)%cost
+      local_chnk_stats_i4(1,lcid) = cid
+      local_chnk_stats_i4(2,lcid) = chunks(cid)%owner
+      local_chnk_stats_i4(3,lcid) = lchunks(lcid)%ncols
+      local_chnk_stats_i4(4,lcid) = chunks(cid)%dcols
+   enddo
 
-         call MPI_GATHERV(local_chnk_stats_r8, 2*nlchunks, MPI_REAL8,             &
-                           chnk_stats_r8, 2*recvcnts(:), 2*displs(:), MPI_REAL8,   &
-                           masterprocid, mpicom, ierr                              )
-         call MPI_GATHERV(local_chnk_stats_i4, 4*nlchunks, MPI_INTEGER,           &
-                           chnk_stats_i4, 4*recvcnts(:), 4*displs(:), MPI_INTEGER, &
-                           masterprocid, mpicom, ierr                              )
-   #else
-         do lcid = begchunk, endchunk
-            cid = lchunks(lcid)%cid
+   call MPI_GATHERV(local_chnk_stats_r8, 2*nlchunks, MPI_REAL8,             &
+                     chnk_stats_r8, 2*recvcnts(:), 2*displs(:), MPI_REAL8,   &
+                     masterprocid, mpicom, ierr                              )
+   call MPI_GATHERV(local_chnk_stats_i4, 4*nlchunks, MPI_INTEGER,           &
+                     chnk_stats_i4, 4*recvcnts(:), 4*displs(:), MPI_INTEGER, &
+                     masterprocid, mpicom, ierr                              )
+#else
+   do lcid = begchunk, endchunk
+      cid = lchunks(lcid)%cid
 
-            chnk_stats_r8(1,lcid) = chunks(cid)%estcost
-            chnk_stats_r8(2,lcid) = lchunks(lcid)%cost
+      chnk_stats_r8(1,lcid) = chunks(cid)%estcost
+      chnk_stats_r8(2,lcid) = lchunks(lcid)%cost
 
-            chnk_stats_i4(1,lcid) = cid
-            chnk_stats_i4(2,lcid) = chunks(cid)%owner
-            chnk_stats_i4(3,lcid) = lchunks(lcid)%ncols
-            chnk_stats_i4(4,lcid) = chunks(cid)%dcols
-         enddo
-   #endif
+      chnk_stats_i4(1,lcid) = cid
+      chnk_stats_i4(2,lcid) = chunks(cid)%owner
+      chnk_stats_i4(3,lcid) = lchunks(lcid)%ncols
+      chnk_stats_i4(4,lcid) = chunks(cid)%dcols
+   enddo
+#endif
 
          if (masterproc) then
 
@@ -2552,10 +2552,10 @@ logical function phys_grid_initialized ()
          call freeunit(unitn)
 
          ! Clean up
-   #if ( defined SPMD )
-         deallocate( displs        )
-         deallocate( recvcnts      )
-   #endif
+#if ( defined SPMD )
+   deallocate( displs        )
+   deallocate( recvcnts      )
+#endif
          deallocate( chnk_stats_i4 )
          deallocate( chnk_stats_r8 )
          deallocate( proc_stats_i4 )
