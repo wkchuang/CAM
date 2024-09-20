@@ -98,6 +98,7 @@ module phys_grid
    use cam_abortutils,   only: endrun
    use perf_mod
    use cam_logfile,      only: iulog
+   use units,            only: getunit
 
    implicit none
    save
@@ -153,6 +154,8 @@ module phys_grid
      integer  :: lat(pcols)            ! global latitude indices
      integer  :: owner                 ! id of process where chunk assigned
      integer  :: lcid                  ! local chunk index
+     integer  :: dcols                 ! number of columns in common with co-located dynamics blocks
+     real(r8) :: estcost               ! estimated computational cost (normalized)
    end type chunk
 
    integer :: nchunks                  ! global chunk count
@@ -168,6 +171,7 @@ module phys_grid
      integer  :: gcol(pcols)           ! global physics column indices
      real(r8) :: area(pcols)           ! column surface area (from dynamics)
      real(r8) :: wght(pcols)           ! column integration weight (from dynamics)
+     real(r8) :: cost                  ! measured computational cost (seconds)
    end type lchunk
 
    integer, private :: nlchunks        ! local chunk count
@@ -245,6 +249,33 @@ module phys_grid
    integer, private :: nproc_busy_d    ! number of processes active during the dynamics
                                        !  (assigned a dynamics block)
 
+   ! Physics grid decomposition environment
+   integer, private :: nlthreads       ! number of OpenMP threads available to this process
+   integer, dimension(:), allocatable, private :: npthreads
+                                       ! number of OpenMP threads available to each process
+                                       !  (deallocated at end of phys_grid_init)
+
+! Physics fields data structure (chunk) first dimension (pcols) option:
+!  1 <= pcols_opt: pcols is set to pcols_opt
+!  0 >= pcols_opt: calculate pcols based on lbal_opt, chunks_per_thread, number of
+!       columns and threads in virtual SMP and relative costs per column (if provided), 
+!       attempting to minimize wasted space and number of chunks, subject to:
+!   0 <  pcols_max, then this is an upper bound on the calculated pcols.
+!        Otherwise, pcols_max is ignored.
+!   1 <  pcols_mult, then pcols is required to be a multiple of pcols_mult
+!        (if pcols_max > 0 and pcols_mult <= pcols_max)
+!        Otherwise, pcols_mult is ignored.
+   integer, private, parameter :: def_pcols_opt  = 0              ! default 
+   integer, private :: pcols_opt = def_pcols_opt
+
+   integer, private, parameter :: min_pcols_max  = 1
+   integer, private, parameter :: def_pcols_max  = -1             ! default 
+   integer, private :: pcols_max = def_pcols_max
+
+   integer, private, parameter :: min_pcols_mult = 1
+   integer, private, parameter :: def_pcols_mult = 1              ! default 
+   integer, private :: pcols_mult = def_pcols_mult
+
 ! Physics grid decomposition options:
 ! -1: each chunk is a dynamics block
 !  0: chunk definitions and assignments do not require interprocess comm.
@@ -267,6 +298,11 @@ module phys_grid
    integer, private, parameter :: def_twin_alg_unstructured = 0
    integer, private :: twin_alg = def_twin_alg_lonlat
 
+! Physics grid load balancing output options:  
+!  T: write out both estimated (normalized) and actual (seconds) cost per chunk
+!  F: do not write out costs
+   logical, private, parameter :: def_output_chunk_costs = .true.
+   logical, private :: output_chunk_costs = def_output_chunk_costs
 ! target number of chunks per thread
    integer, private, parameter :: min_chunks_per_thread = 1
    integer, private, parameter :: def_chunks_per_thread = &
@@ -295,6 +331,11 @@ module phys_grid
    integer, private :: phys_alltoall = def_alltoall
 
 !========================================================================
+! Physics computational cost on this process
+! (running total of time measured over loops over chunks in physpkg.F90)
+   real(r8), public :: phys_proc_cost = 0.0_r8
+
+contains
 contains
 !========================================================================
 
