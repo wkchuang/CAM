@@ -336,7 +336,6 @@ module phys_grid
    real(r8), public :: phys_proc_cost = 0.0_r8
 
 contains
-contains
 !========================================================================
 
 subroutine phys_grid_readnl(nlfile)

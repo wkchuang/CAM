@@ -537,10 +537,10 @@ subroutine setup_moist_indices()
 
    implicit none
 
-   call cnst_get_ind('CLDICE', icldice, abrtf=.false.)
-   call cnst_get_ind('CLDLIQ', icldliq, abrtf=.false.)
-   call cnst_get_ind('RAINQM', irain, abrtf=.false.)
-   call cnst_get_ind('SNOWQM', isnow, abrtf=.false.)
+   call cnst_get_ind('CLDICE', icldice, abort=.false.)
+   call cnst_get_ind('CLDLIQ', icldliq, abort=.false.)
+   call cnst_get_ind('RAINQM', irain, abort=.false.)
+   call cnst_get_ind('SNOWQM', isnow, abort=.false.)
 
  end subroutine setup_moist_indices
 
