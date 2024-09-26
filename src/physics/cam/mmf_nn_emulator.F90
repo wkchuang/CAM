@@ -438,7 +438,8 @@ end subroutine neural_net
 
     implicit none
 
-    integer :: i, k ! Why are these values here? They appear unused
+    ! integer :: i, k ! Why are these values here? They appear unused
+    type(torch_model) :: model_pytorch
 
     allocate(torch_mod(1))
 
