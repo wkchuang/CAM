@@ -100,6 +100,9 @@ subroutine read_namelist(nlfilename, single_column, scmlat, scmlon)
    use qneg_module,         only: qneg_readnl
 !JDB and ABJ
    use cam_stoch,           only: cam_stoch_readnl
+#ifdef MMF_NN_EMULATOR
+   use mmf_nn_emulator,             only: mmf_nn_emulator_readnl
+#endif
 
    !---------------------------Arguments-----------------------------------
 
@@ -199,6 +202,10 @@ subroutine read_namelist(nlfilename, single_column, scmlat, scmlon)
    call ionosphere_readnl(nlfilename)
    call qneg_readnl(nlfilename)
 
+#ifdef MMF_NN_EMULATOR
+   ! Read MMF_NN_EMULATOR namelist
+   call mmf_nn_emulator_readnl(nlfilename)
+#endif
 end subroutine read_namelist
 
 
