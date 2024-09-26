@@ -694,9 +694,10 @@ contains
 
 
   subroutine phys_init( phys_state, phys_tend, pbuf2d, cam_out )
-   #ifdef MMF_NN_EMULATOR
-      use mmf_nn_emulator,    only: init_neural_net
-   #endif
+
+#ifdef MMF_NN_EMULATOR
+   use mmf_nn_emulator,    only: init_neural_net
+#endif
     !-----------------------------------------------------------------------
     !
     ! Initialization of physics package.
