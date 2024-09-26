@@ -111,7 +111,7 @@ contains
    real(r8), pointer, dimension(:,:) :: ozone, ch4, n2o ! (/pcols,pver/)
 
    type(torch_tensor), dimension(1) :: in_tensor, out_tensor !wkc same as torchftn
-   real(real32) :: input_torch(inputlength, pcols)
+   real(real32), pointer :: input_torch(inputlength, pcols)
    real(real32), pointer :: output_torch(:, :)
    real(r8) :: math_pi
 
@@ -283,7 +283,7 @@ end select
     call torch_tensor_from_array(in_tensor(1), input_torch,  in_layout, torch_kCPU) ! Ftorch
 
     ! Set the out_tensor before moving forward one time step
-    call torch_tensor_from_array(out_tensor(1), out_data, out_layout, torch_kCPU) 
+    call torch_tensor_from_array(out_tensor(1), output_torch, out_layout, torch_kCPU) 
 
     if (masterproc) write(iulog,*) 'Calling Ftorch!' !ftorch
     print *, "Calling FTorch!"
