@@ -56,8 +56,7 @@ use iso_fortran_env
   logical :: cb_strato_water_constraint = .false. ! zero out cloud (qc and qi) above tropopause in the NN output
   real(r8) :: dtheta_thred = 10.0 ! threshold for determine the tropopause (currently is p<400hPa and dtheta/dz>dtheta_thred = 10K/km) 
 
-  ! Removed allocatable because this will only hold a single model
-  type(torch_model) :: torch_mod !wkc
+  type(torch_model), allocatable :: model_pytorch
 
   ! local
   logical :: cb_top_levels_zero_out = .true.
@@ -439,9 +438,8 @@ end subroutine neural_net
     implicit none
 
     ! integer :: i, k ! Why are these values here? They appear unused
-    type(torch_model) :: model_pytorch
 
-    allocate(torch_mod(1))
+    ! allocate(model_pytorch(1)) ! already allocated? wkc
 
     !wkc Will have to return to this for CPU/GPU assessment 
     model_pytorch = torch_model_load(trim(cb_torch_model)) 
