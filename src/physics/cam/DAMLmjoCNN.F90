@@ -115,7 +115,7 @@ module cb24mjocnn
   real(r8),allocatable::MJO_Inc_08 (:,:,:,:) !(pcols,pver,begchunk:endchunk,cb24mjocnn_NumObs)
 
   !FTORCH vectors:
-  type(torch_module) :: model_ftorch !ftorch
+  type(torch_model) :: model_ftorch !ftorch
   real(r4) output_ftorch(9) !ftorch
   real(r8),allocatable:: cb24mjocnn_Model_input (:,:,:,:)  !(pcols,pver,begchunk:endchunk)
   real(r8), dimension(:), allocatable, target :: probabilities_ftorch !ftorch
@@ -320,7 +320,7 @@ contains
 
     !Load the Pytorch Model
     Torchpath = '/glade/work/wchapman/DA_ML/CESML_AI/MJO_Increments/saved_MJOcnnClassify_SS_model_cpu.pt'
-    model_ftorch = torch_module_load(Torchpath)
+    call torch_model_load(model_ftorch, Torchpath)
     
     ! Init forcing as zeros:
     do lchnk=begchunk,endchunk
@@ -344,8 +344,7 @@ contains
     use netcdf
     
     !+++ Ftorch tensors
-    type(torch_tensor), dimension(1) :: in_tensor !ftorch
-    type(torch_tensor) :: out_tensor
+    type(torch_tensor), dimension(1) :: in_tensor, out_tensor !ftorch
     !--- Ftorch tensors
 
     !local values:
@@ -478,10 +477,11 @@ contains
         !if (masterproc) write(iulog,*) 'Cowabunga!', model_input_sub_single(1,5,:,20)
         !if (masterproc) write(iulog,*) 'Cowabunga!', model_input_sub_single(1,6,:,20)
         
-        in_tensor(1) = torch_tensor_from_array(model_input_sub_single, in_layout, torch_kCPU)
-        out_tensor = torch_tensor_from_array(out_data, out_layout, torch_kCPU)
+        call torch_tensor_from_array(in_tensor(1),model_input_sub_single, in_layout, torch_kCPU)
+        call torch_tensor_from_array(out_tensor(1), out_data, out_layout, torch_kCPU)
+        
         if (masterproc) write(iulog,*) 'Calling Ftorch!'!ftorch
-        call torch_module_forward(model_ftorch, in_tensor, n_inputs, out_tensor)
+        call torch_model_forward(model_ftorch, in_tensor, out_tensor)
         ! Loop through the vector and replace NaNs with zeros
         do ii = 1, 9
             if (isnan(out_data(1,ii))) then
@@ -505,8 +505,8 @@ contains
 #endif 
     !--- Call FTorch prediction and handle data:
     
-    call torch_tensor_delete(in_tensor(1))
-    call torch_tensor_delete(out_tensor)
+    call torch_delete(in_tensor)
+    call torch_delete(out_tensor)
   end subroutine cb24mjocnn_timestep_tender
 
 
@@ -1112,7 +1112,7 @@ contains
 
   subroutine cb24mjocnn_finalize()
     ! Cleanup
-    call torch_module_delete(model_ftorch)
+    call torch_delete(model_ftorch)
   end subroutine cb24mjocnn_finalize
 
   end module cb24mjocnn
