@@ -15,9 +15,10 @@ module physpkg
   use spmd_utils,       only: masterproc
   use physconst,        only: latvap, latice, rh2o
   use physics_types,    only: physics_state, physics_tend, physics_state_set_grid, &
-       physics_ptend, physics_tend_init, physics_update,    &
-       physics_type_alloc, physics_ptend_dealloc,&
-       physics_state_alloc, physics_state_dealloc, physics_tend_alloc, physics_tend_dealloc
+                              physics_ptend, physics_tend_init, physics_update,    &
+                              physics_type_alloc, physics_ptend_dealloc, &
+                              physics_state_alloc, physics_state_dealloc, &
+                              physics_tend_alloc, physics_tend_dealloc
   use phys_grid,        only: get_ncols_p
   use phys_gmean,       only: gmean_mass
   use ppgrid,           only: begchunk, endchunk, pcols, pver, pverp, psubcols
@@ -684,7 +685,9 @@ contains
     ! Initialization of physics package.
     !
     !-----------------------------------------------------------------------
-
+#ifdef MMF_NN_EMULATOR
+    use mmf_nn_emulator,    only: init_neural_net
+#endif
     use physics_buffer,     only: physics_buffer_desc, pbuf_initialize, pbuf_get_index
     use physconst,          only: rair, cpair, gravit, stebol, tmelt, &
                                   latvap, latice, rh2o, rhoh2o, pstd, zvir, &
@@ -938,12 +941,358 @@ contains
     !call cb24mjocnn_init
     call cb24cnn_init
 
+#ifdef MMF_NN_EMULATOR 
+    call init_neural_net()
+#endif
   end subroutine phys_init
+  
+  !
+  !-------------------------------------------------------------------------
+  !
+#ifdef MMF_NN_EMULATOR
+  subroutine mmf_nn_emulator_driver(phys_state, phys_state_aphys1, phys_state_mmf, ztodt, phys_tend, pbuf2d,  cam_in, cam_out, cam_out_mmf)
+    !-----------------------------------------------------------------------------
+    ! Purpose: mmf_nn_emulator driver
+    !-----------------------------------------------------------------------------
+    use mmf_nn_emulator,        only: cb_spinup_step
+    use physics_buffer,         only: physics_buffer_desc, pbuf_get_chunk, &
+                                      pbuf_allocate, pbuf_get_index
+    use time_manager,           only: get_nstep, get_step_size, &
+                                      is_first_step, is_first_restart_step, &
+                                      get_curr_calday
+    use cam_diagnostics,        only: diag_allocate, &
+                                      diag_phys_writeout, &
+                                      diag_phys_writeout, diag_conv
+    use radiation,              only: iradsw, use_rad_dt_cosz
+    use radconstants,           only: nswbands, get_ref_solar_band_irrad
+    use rad_solar_var,          only: get_variability
+    use orbit,                  only: zenith
+    use shr_orb_mod,            only: shr_orb_decl
+    use phys_grid,              only: get_rlat_all_p, get_rlon_all_p
+    use cam_control_mod,        only: eccen, mvelpp, lambm0, obliqr
+    use tropopause,             only: tropopause_output
+    use camsrfexch,             only: cam_export
+    use cloud_diagnostics,      only: cloud_diagnostics_calc
+
+    !-----------------------------------------------------------------------------
+    ! Interface arguments
+    !-----------------------------------------------------------------------------
+    real(r8), intent(in) :: ztodt            ! physics time step unless nstep=0
+    type(physics_state), intent(inout), dimension(begchunk:endchunk) :: phys_state
+    type(physics_state), intent(in),    dimension(begchunk:endchunk) :: phys_state_aphys1
+    type(physics_state), intent(inout), dimension(begchunk:endchunk) :: phys_state_mmf
+    type(physics_tend ), intent(inout), dimension(begchunk:endchunk) :: phys_tend
+    type(physics_buffer_desc), pointer, dimension(:,:)               :: pbuf2d
+    type(cam_in_t),                     dimension(begchunk:endchunk) :: cam_in
+    type(cam_out_t),                    dimension(begchunk:endchunk) :: cam_out
+    type(cam_out_t),      intent(out),  dimension(begchunk:endchunk) :: cam_out_mmf
+    !-----------------------------------------------------------------------------
+    ! Local Variables
+    !-----------------------------------------------------------------------------
+    integer :: lchnk                             ! chunk identifier
+    integer :: ncol                              ! number of columns
+    integer :: nstep                             ! current timestep number
+    type(physics_buffer_desc), pointer :: phys_buffer_chunk(:)
+    !-----------------------------------------------------------------------------
+
+    !-----------------------------------------------------------------------------
+    ! Local Variables (for MMF_NN_EMULATOR)
+    !-----------------------------------------------------------------------------
+    integer, save :: nstep0
+    integer       :: nstep_NN, dtime
+    logical :: do_mmf_nn_emulator_inference = .false.
+
+    type(physics_state), allocatable, dimension(:)  :: phys_state_nn
+    type(physics_state), allocatable, dimension(:)  :: phys_state_mmf_backup
+    type(physics_tend ), allocatable, dimension(:)  :: phys_tend_nn
+    integer :: prec_dp_idx, snow_dp_idx
+
+    real(r8) :: calday       ! current calendar day
+    real(r8) :: clat(pcols)  ! current latitudes(radians)
+    real(r8) :: clon(pcols)  ! current longitudes(radians)
+    real(r8), dimension(pcols,begchunk:endchunk) :: coszrs  ! Cosine solar zenith angle
+    real(r8), dimension(pcols,begchunk:endchunk) :: solin   ! Insolation
+
+    real(r8) :: sfac(1:nswbands)  ! time varying scaling factors due to Solar Spectral Irrad at 1 A.U. per band
+    real(r8) :: solar_band_irrad(1:nswbands) ! rrtmg-assumed solar irradiance in each sw band
+    real(r8) :: dt_avg = 0.0_r8   ! time step to use for the shr_orb_cosz calculation, if use_rad_dt_cosz set to true
+    real(r8) :: delta    ! Solar declination angle in radians
+    real(r8) :: eccf     ! Earth orbit eccentricity factor
+    integer :: ierr=0
+  !-----------------------------------------------------------------------------
+    ! phys_run1 opening
+    ! - phys_timestep_init advances ghg gases,
+    ! - need to advance solar insolation (for NN)
+    !-----------------------------------------------------------------------------
+  
+  
+    allocate(phys_state_nn(begchunk:endchunk), stat=ierr)
+     if (ierr /= 0) then
+        ! Handle allocation error
+        write(iulog,*) 'Error allocating phys_state_nn error = ',ierr
+     end if
+  
+     allocate(phys_state_mmf_backup(begchunk:endchunk), stat=ierr)
+     if (ierr /= 0) then
+        ! Handle allocation error
+        write(iulog,*) 'Error allocating phys_state_mmf_backup error = ',ierr
+     end if
+  
+     allocate(phys_tend_nn(begchunk:endchunk), stat=ierr)
+      if (ierr /= 0) then
+          ! Handle allocation error
+          write(iulog,*) 'Error allocating phys_tend_nn error = ',ierr
+      end if
+  
+      do lchnk=begchunk,endchunk
+        call physics_state_alloc(phys_state_nn(lchnk),lchnk,pcols)
+        call physics_state_alloc(phys_state_mmf_backup(lchnk),lchnk,pcols)
+        ! call physics_tend_alloc(phys_tend_nn(lchnk),lchnk,pcols)
+     end do
+  
+     do lchnk=begchunk,endchunk
+        call physics_tend_alloc(phys_tend_nn(lchnk),phys_state_nn(lchnk)%psetcols)
+     end do
+  
+    nstep = get_nstep()
+    dtime = get_step_size()
+  
+    call pbuf_allocate(pbuf2d, 'physpkg')
+    call diag_allocate()
+  
+    ! Advance time information
+    call t_startf ('phys_timestep_init')
+    call phys_timestep_init( phys_state, cam_out, pbuf2d)
+    call t_stopf ('phys_timestep_init')
+  
+    ! Calculate  COSZRS and SOLIN
+    call get_ref_solar_band_irrad( solar_band_irrad ) ! this can move to init subroutine
+    call get_variability(sfac)                        ! "
+    do lchnk=begchunk,endchunk
+       ncol = phys_state(lchnk)%ncol
+       calday = get_curr_calday(-dtime) ! get current calendar day with a negative offset to match the time in mli and CRM physics
+       ! coszrs
+       call get_rlat_all_p(lchnk, ncol, clat)
+       call get_rlon_all_p(lchnk, ncol, clon)
+       if (use_rad_dt_cosz)  then
+          dtime  = get_step_size()
+          dt_avg = iradsw*dtime
+       end if
+       call zenith(calday, clat, clon, coszrs(:,lchnk), ncol, dt_avg)
+       ! solin
+       call shr_orb_decl(calday  ,eccen     ,mvelpp  ,lambm0  ,obliqr  , &
+                         delta   ,eccf      )
+       solin(:,lchnk) = sum(sfac(:)*solar_band_irrad(:)) * eccf * coszrs(:,lchnk)
+    end do
+    ! [TO-DO] Check solin and coszrs from this calculation vs. pbuf_XXX
+  
+    prec_dp_idx = pbuf_get_index('PREC_DP', errcode=i) ! Query physics buffer index
+    snow_dp_idx = pbuf_get_index('SNOW_DP', errcode=i)
+  
+    !-----------------------------------------------------------------------------
+    ! phys_run1 main
+    !-----------------------------------------------------------------------------
+  
+    ! Call init subroutine for neural networks
+    ! (loading neural network weights and normalization factors)
+    if (is_first_step() .or. is_first_restart_step()) then
+       nstep0 = nstep
+    end if
+  
+    ! Determine if MMF spin-up period is over
+    ! (currently spin up time is set at 86400 sec ~ 1 day)
+    ! [TO-DO] create a namelist variable for mmf spin-up time
+    ! nstep_NN = 86400 / get_step_size()
+    nstep_NN = cb_spinup_step
+  
+    if (nstep-nstep0 .eq. nstep_NN) then
+       do_mmf_nn_emulator_inference = .true.
+       if (masterproc) then
+          write(iulog,*) '---------------------------------------'
+          write(iulog,*) '[MMF_NN_EMULATOR] NN coupling starts'
+          write(iulog,*) '---------------------------------------'
+       end if
+    end if
+  
+    ! !Save original values of subroutine arguments
+    ! if (do_mmf_nn_emulator_inference .and. cb_partial_coupling) then
+    !    do lchnk = begchunk, endchunk
+    !     ! since phys_state_mmf_backup etc is just allocated but have not been initialized (empty), doing this copy won't lead to memory leak
+    !       phys_state_nn(lchnk) = phys_state(lchnk) 
+    !       phys_state_mmf_backup(lchnk) = phys_state_mmf(lchnk)
+    !       phys_tend_nn(lchnk)  = phys_tend(lchnk) 
+    !       cam_out_nn(lchnk)    = cam_out(lchnk) 
+    !    end do
+    ! end if
+  
+    ! Run phys_run1 physics
+    if (.not. do_mmf_nn_emulator_inference) then  ! MMF spin-up
+       call phys_run1(phys_state, ztodt, phys_tend, pbuf2d,  cam_in, cam_out)
+       do lchnk = begchunk, endchunk
+          call physics_state_dealloc(phys_state_mmf(lchnk)) ! to prevent memory leak
+          call physics_state_copy(phys_state(lchnk), phys_state_mmf(lchnk))
+          cam_out_mmf(lchnk)    = cam_out(lchnk)
+       end do
+    else  ! NN inference
+      ! NN full coupling
+      call phys_run1_NN(phys_state, phys_state_aphys1, ztodt, phys_tend, pbuf2d, cam_in, cam_out, &
+                        solin, coszrs)
+      do lchnk = begchunk, endchunk
+        ! in fully nn coupling case (no partial coupling), phys_state_mmf is just synced with phys_state but won't be used
+        call physics_state_dealloc(phys_state_mmf(lchnk))
+        call physics_state_copy(phys_state(lchnk), phys_state_mmf(lchnk))
+        cam_out_mmf(lchnk)    = cam_out(lchnk)
+      end do
+    end if ! (.not. do_mmf_nn_emulator_inference)
+  
+    ! copy from the tphysbc2 to here. make sure the outputted history file is consistent with the partial coupling
+    do lchnk=begchunk, endchunk
+      phys_buffer_chunk => pbuf_get_chunk(pbuf2d, lchnk)
+      call t_startf('bc_history_write')
+      call diag_phys_writeout(phys_state(lchnk), cam_out(lchnk)%psl)
+      call diag_conv(phys_state(lchnk), ztodt, phys_buffer_chunk)
+      call t_stopf('bc_history_write')
+  
+      !-----------------------------------------------------------------------------
+      ! Write cloud diagnostics on history file
+      !-----------------------------------------------------------------------------
+      call t_startf('bc_cld_diag_history_write')
+      call cloud_diagnostics_calc(phys_state(lchnk), phys_buffer_chunk)
+      call t_stopf('bc_cld_diag_history_write')
+    end do 
+    !-----------------------------------------------------------------------------
+    ! phys_run1 closing
+    ! - tphysbc2 diagnostic (including cam_export)
+    !-----------------------------------------------------------------------------
+    do lchnk=begchunk, endchunk
+       ! Diagnose the location of the tropopause
+       call tropopause_output(phys_state(lchnk))
+
+       ! Save atmospheric fields to force surface models
+       phys_buffer_chunk => pbuf_get_chunk(pbuf2d, lchnk)
+       call cam_export(phys_state(lchnk), cam_out(lchnk), phys_buffer_chunk)
+
+       ! Write export state to history file
+       call diag_export(cam_out(lchnk))
+    end do
+  
+    do lchnk=begchunk,endchunk
+      call physics_state_dealloc(phys_state_nn(lchnk))
+      call physics_state_dealloc(phys_state_mmf_backup(lchnk))
+      call physics_tend_dealloc(phys_tend_nn(lchnk))
+    end do
+    deallocate(phys_state_nn)
+    deallocate(phys_state_mmf_backup)
+    deallocate(phys_tend_nn)
+  
+  end subroutine mmf_nn_emulator_driver
+#endif /* MMF_NN_EMULATOR */
+  !
+  !-------------------------------------------------------------------------
+  !
+#ifdef MMF_NN_EMULATOR
+  subroutine phys_run1_NN(phys_state, phys_state_aphys1, ztodt, phys_tend, pbuf2d,  cam_in, cam_out, &
+                          solin, coszrs)
+    !-----------------------------------------------------------------------------
+    ! Purpose: First part of atmos physics before updating of surface components
+    !-----------------------------------------------------------------------------
+    use mmf_nn_emulator,       only: neural_net
+    use physics_buffer,        only: pbuf_get_field
+    use time_manager,          only: get_nstep
+    use check_energy,          only: check_energy_gmean
+    use flux_avg,              only: flux_avg_init
+    !-----------------------------------------------------------------
+    ! Interface Arguments
+    !-----------------------------------------------------------------
+    type(physics_state), intent(inout), dimension(begchunk:endchunk) :: phys_state
+    type(physics_state), intent(in),    dimension(begchunk:endchunk) :: phys_state_aphys1
+    real(r8), intent(in) :: ztodt            ! physics time step unless nstep=0
+    type(physics_tend ), intent(inout), dimension(begchunk:endchunk) :: phys_tend
+    type(physics_buffer_desc), pointer, dimension(:,:) :: pbuf2d
+    type(cam_in_t),                     dimension(begchunk:endchunk) :: cam_in
+    type(cam_out_t),                    dimension(begchunk:endchunk) :: cam_out
+    real(r8), intent(in), dimension(pcols,begchunk:endchunk) :: solin   ! Insolation  
+    real(r8), intent(in), dimension(pcols,begchunk:endchunk) :: coszrs  ! Cosine solar zenith angle
+    !-----------------------------------------------------------------
+    ! Local Variables
+    !-----------------------------------------------------------------
+    type(physics_state)                              :: state
+    type(physics_buffer_desc), pointer, dimension(:) :: phys_buffer_chunk
+    type(physics_ptend)                              :: ptend 
+    integer :: lchnk                             ! chunk identifier
+    integer :: nstep                             ! current timestep number
+    integer :: ncol
+    integer :: ixcldice, ixcldliq            ! constituent indices for cloud liquid and ice water.
+    real(r8), pointer, dimension(:,:) :: tini
+    real(r8), pointer, dimension(:,:) :: qini
+    real(r8), pointer, dimension(:,:) :: cldliqini
+    real(r8), pointer, dimension(:,:) :: cldiceini
+
+    nullify(phys_buffer_chunk)
+    nullify(tini)   
+    nullify(qini)
+    nullify(cldliqini)
+    nullify(cldiceini)    
+    
+    !---------------------------------
+    ! phys_run1_NN opening
+    !---------------------------------
+
+    nstep = get_nstep()
+      ! Set physics tendencies to 0
+    do lchnk = begchunk, endchunk
+      ncol = phys_state(lchnk)%ncol
+      phys_tend(lchnk)%dtdt(:ncol,:pver) = 0._r8
+      phys_tend(lchnk)%dudt(:ncol,:pver) = 0._r8
+      phys_tend(lchnk)%dvdt(:ncol,:pver) = 0._r8
+    end do
+
+    ! The following initialization depends on the import state (cam_in)
+    ! being initialized.  This isn't true when cam_init is called, so need
+    ! to postpone this initialization to here.
+    if (nstep == 0 .and. phys_do_flux_avg()) call flux_avg_init(cam_in, pbuf2d)
+    ! Compute total energy of input state and previous output state
+    call t_startf ('chk_en_gmean')
+    call check_energy_gmean(phys_state, pbuf2d, ztodt, nstep)
+    call t_stopf ('chk_en_gmean')
+
+    ! these initial states will be used in tphysac diagnostics
+    do lchnk=begchunk, endchunk
+      state = phys_state(lchnk)
+      phys_buffer_chunk => pbuf_get_chunk(pbuf2d, lchnk)
+      call pbuf_get_field(phys_buffer_chunk, tini_idx, tini)
+      call pbuf_get_field(phys_buffer_chunk, qini_idx, qini)
+      call pbuf_get_field(phys_buffer_chunk, cldliqini_idx, cldliqini)
+      call pbuf_get_field(phys_buffer_chunk, cldiceini_idx, cldiceini)
+
+      ncol = phys_state(lchnk)%ncol
+      tini(:ncol,:pver) = state%t(:ncol,:pver)
+      call cnst_get_ind('CLDLIQ', ixcldliq)
+      call cnst_get_ind('CLDICE', ixcldice)
+      qini     (:ncol,:pver) = state%q(:ncol,:pver,       1)
+      cldliqini(:ncol,:pver) = state%q(:ncol,:pver,ixcldliq)
+      cldiceini(:ncol,:pver) = state%q(:ncol,:pver,ixcldice)
+    end do
+
+  !-----------------------------------------------------------------------------
+  ! Neural network
+  !-----------------------------------------------------------------------------
+    do lchnk=begchunk, endchunk
+      phys_buffer_chunk => pbuf_get_chunk(pbuf2d, lchnk)
+      call neural_net (ptend, phys_state(lchnk), phys_state_aphys1(lchnk), &
+                       phys_buffer_chunk, &
+                       cam_in(lchnk), cam_out(lchnk), &
+                       coszrs(:,lchnk), solin(:,lchnk), &
+                       ztodt, lchnk)
+      call physics_update (phys_state(lchnk), ptend, ztodt, phys_tend(lchnk))
+    end do
+
+  end subroutine phys_run1_NN
 
   !
   !-----------------------------------------------------------------------
   !
-
+#else /* i.e. if MMF_NN_EMULATOR is not defined: */
   subroutine phys_run1(phys_state, ztodt, phys_tend, pbuf2d,  cam_in, cam_out)
     !-----------------------------------------------------------------------
     !
@@ -1002,7 +1351,7 @@ contains
     ! if offline mode set SNOWH and TS for micro-phys
     !
     call get_met_srf1( cam_in )
-#endif
+#endif /* MMF_NN_EMULATOR */
 
     ! The following initialization depends on the import state (cam_in)
     ! being initialized.  This isn't true when cam_init is called, so need
@@ -1098,7 +1447,7 @@ contains
 #endif
 
   end subroutine phys_run1
-
+#endif /* end MMF_NN_EMULATOR */
   !
   !-----------------------------------------------------------------------
   !
@@ -2284,7 +2633,7 @@ contains
     endif
 
     
-
+#ifndef MMF_NN_EMULATOR
     !if((cb24mjocnn_Model).and.(cb24mjocnn_Model)) then
     !  call t_startf('cb24mjocnn_init')
     !  call cb24mjocnn_timestep_init(state,ptend,pbuf,cam_in,cam_out)
@@ -2321,6 +2670,7 @@ contains
     call cloud_diagnostics_calc(state, pbuf)
 
     call t_stopf('bc_cld_diag_history_write')
+#endif /* ifndef MMF_NN_EMULATOR */
 
     !===================================================
     ! Radiation computations
@@ -2340,6 +2690,7 @@ contains
 
     call t_stopf('radiation')
 
+#ifndef MMF_NN_EMULATOR
     ! Diagnose the location of the tropopause and its location to the history file(s).
     call t_startf('tropopause')
     call tropopause_output(state)
@@ -2354,6 +2705,7 @@ contains
     call t_startf('diag_export')
     call diag_export(cam_out)
     call t_stopf('diag_export')
+#endif /* MMF_NN_EMULATOR */
 
   end subroutine tphysbc
 
