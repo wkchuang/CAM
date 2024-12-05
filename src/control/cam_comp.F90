@@ -52,6 +52,15 @@ type(physics_state),       pointer :: phys_state(:) => null()
 type(physics_tend ),       pointer :: phys_tend(:) => null()
 type(physics_buffer_desc), pointer :: pbuf2d(:,:) => null()
 
+#if defined(MMF_NN_EMULATOR)
+  type(physics_state), pointer :: phys_state_aphys1(:) => null() ! save phys_state after call to phys_run1 and before calling ac and dycore
+  type(physics_state), pointer :: phys_state_mmf(:) => null() ! to record state of crm grid-mean state 
+  ! place holder for phys_state_aphys1 and phys_state_mmf
+  ! easy to been initialized by: call physics_type_alloc(phys_state_aphys1, phys_tend_placeholder, begchunk, endchunk, pcols)
+  type(physics_tend), pointer :: phys_tend_placeholder(:) => null()
+  type(physics_tend), pointer :: physphys_tend_placeholder_mmf(:) => null()
+#endif
+
 real(r8) :: dtime_phys         ! Time step for physics tendencies.  Set by call to
                                ! stepon_run1, then passed to the phys_run*
 
@@ -83,6 +92,7 @@ subroutine cam_init(EClock, &
    use cam_restart,      only: cam_read_restart
    use stepon,           only: stepon_init
    use ionosphere_interface, only: ionosphere_init
+   use physics_types,     only: physics_type_alloc, physics_state_set_grid
 
 #if (defined BFB_CAM_SCAM_IOP)
    use history_defaults, only: initialize_iop_history
@@ -200,6 +210,15 @@ subroutine cam_init(EClock, &
 
    call phys_init( phys_state, phys_tend, pbuf2d,  cam_out )
 
+#if defined(MMF_NN_EMULATOR)
+   call physics_type_alloc(phys_state_aphys1, phys_tend_placeholder, begchunk, endchunk, pcols)
+   call physics_type_alloc(phys_state_mmf, physphys_tend_placeholder_mmf, begchunk, endchunk, pcols)
+   do lchnk = begchunk, endchunk
+      call physics_state_set_grid(lchnk, phys_state_aphys1(lchnk))
+      call physics_state_set_grid(lchnk, phys_state_mmf(lchnk))
+   end do
+#endif
+
    call bldfld ()       ! master field list (if branch, only does hash tables)
 
    call stepon_init(dyn_in, dyn_out)
@@ -223,7 +242,11 @@ subroutine cam_run1(cam_in, cam_out)
 !
 !-----------------------------------------------------------------------
 
+#ifdef MMF_NN_EMULATOR
+   use physpkg,          only: phys_run1, mmf_nn_emulator_driver
+#else
    use physpkg,          only: phys_run1
+#endif
    use stepon,           only: stepon_run1
    use ionosphere_interface,only: ionosphere_run1
 
@@ -255,7 +278,13 @@ subroutine cam_run1(cam_in, cam_out)
    !
    call t_barrierf ('sync_phys_run1', mpicom)
    call t_startf ('phys_run1')
+   ! Insert phys_run1_NN here, but we need a switch here for spcam_ml
+#ifdef MMF_NN_EMULATOR
+   call mmf_nn_emulator_driver(phys_state, phys_state_aphys1, phys_state_mmf, dtime, phys_tend, pbuf2d,  cam_in, cam_out, cam_out_mmf)
+#else
    call phys_run1(phys_state, dtime_phys, phys_tend, pbuf2d,  cam_in, cam_out)
+#endif /* MMF_NN_EMULATOR */
+
    call t_stopf  ('phys_run1')
 
 end subroutine cam_run1
@@ -439,6 +468,20 @@ subroutine cam_final( cam_out, cam_in )
    !-----------------------------------------------------------------------
 
    call phys_final( phys_state, phys_tend , pbuf2d)
+
+#if defined(MMF_NN_EMULATOR)
+   do lchnk=begchunk,endchunk
+      call physics_state_dealloc(phys_state_aphys1(lchnk))
+      call physics_state_dealloc(phys_state_mmf(lchnk))
+      call physics_tend_dealloc(phys_tend_placeholder(lchnk))
+      call physics_tend_dealloc(physphys_tend_placeholder_mmf(lchnk))
+   end do
+   deallocate(phys_state_aphys1)
+   deallocate(phys_tend_placeholder)
+   deallocate(phys_state_mmf)
+   deallocate(physphys_tend_placeholder_mmf)
+#endif
+
    call stepon_final(dyn_in, dyn_out)
    call ionosphere_final()
 
