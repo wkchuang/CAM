@@ -190,6 +190,10 @@
     <lname>2000_CAM%SPCAMCLBM_CLM50%SP_CICE%PRES_DOCN%DOM_RTM_SGLC_SWAV</lname>
   </compset>
 
+  <compset>
+    <alias>FSPCAMSML</alias>
+    <lname>2000_CAM%SPCAMSML_CLM50%SP_CICE%PRES_DOCN%DOM_RTM_SGLC_SWAV</lname>
+  </compset>
 
   <!-- cam-chem untested compsets -->
 
@@ -625,6 +629,7 @@
       <values match="first">
         <value compset="SPCAMS">1</value>
         <value compset="SPCAMM">1</value>
+        <value compset="SPCAMSML">1</value>
       </values>
     </entry>
 
@@ -632,6 +637,7 @@
       <values match="first">
         <value compset="SPCAMS">1</value>
         <value compset="SPCAMM">1</value>
+        <value compset="SPCAMSML">1</value>
       </values>
     </entry>
 
@@ -639,6 +645,7 @@
       <values match="first">
         <value compset="SPCAMS">1</value>
         <value compset="SPCAMM">1</value>
+        <value compset="SPCAMSML">1</value>
       </values>
     </entry>
 
@@ -646,6 +653,7 @@
       <values match="first">
         <value compset="SPCAMS">1</value>
         <value compset="SPCAMM">1</value>
+        <value compset="SPCAMSML">1</value>
       </values>
     </entry>
 
@@ -653,6 +661,7 @@
       <values match="first">
         <value compset="SPCAMS">1</value>
         <value compset="SPCAMM">1</value>
+        <value compset="SPCAMSML">1</value>
       </values>
     </entry>
 
@@ -660,6 +669,7 @@
       <values match="first">
         <value compset="SPCAMS">1</value>
         <value compset="SPCAMM">1</value>
+        <value compset="SPCAMSML">1</value>
       </values>
     </entry>
 
@@ -667,6 +677,7 @@
       <values match="first">
         <value compset="SPCAMS">1</value>
         <value compset="SPCAMM">1</value>
+        <value compset="SPCAMSML">1</value>
       </values>
     </entry>
 
@@ -674,6 +685,7 @@
       <values match="first">
         <value compset="SPCAMS">1</value>
         <value compset="SPCAMM">1</value>
+        <value compset="SPCAMSML">1</value>
       </values>
     </entry>
 
@@ -681,6 +693,7 @@
       <values match="first">
         <value compset="SPCAMS">1</value>
         <value compset="SPCAMM">1</value>
+        <value compset="SPCAMSML">1</value>
       </values>
     </entry>
 
@@ -688,6 +701,7 @@
       <values match="first">
         <value compset="SPCAMS">1</value>
         <value compset="SPCAMM">1</value>
+        <value compset="SPCAMSML">1</value>
       </values>
     </entry>
 
