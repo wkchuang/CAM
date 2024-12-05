@@ -1404,6 +1404,7 @@
 <eddy_scheme pbl="clubb_sgs"      >CLUBB_SGS      </eddy_scheme>
 <eddy_scheme pbl="spcam_m2005"    >SPCAM_m2005    </eddy_scheme>
 <eddy_scheme pbl="spcam_sam1mom"  >SPCAM_sam1mom  </eddy_scheme>
+<eddy_scheme pbl="spcam_ml"       >SPCAM_ML       </eddy_scheme>
 
 <!-- convection schemes -->
 <deep_scheme                     >ZM       </deep_scheme>
@@ -1411,6 +1412,7 @@
 <deep_scheme pbl="none"          >NONE     </deep_scheme>
 <deep_scheme phys='spcam_sam1mom'>SPCAM    </deep_scheme>
 <deep_scheme phys='spcam_m2005'  >SPCAM    </deep_scheme>
+<!-- <deep_scheme phys='spcam_ml'     >SPCAM    </deep_scheme> -->
 
 <shallow_scheme pbl="none"         >NONE     </shallow_scheme>
 <shallow_scheme pbl="uw"           >UW       </shallow_scheme>
@@ -1420,6 +1422,7 @@
 <shallow_scheme pbl="clubb_sgs"    >CLUBB_SGS</shallow_scheme>
 <shallow_scheme pbl="spcam_m2005"  >SPCAM    </shallow_scheme>
 <shallow_scheme pbl="spcam_sam1mom">SPCAM    </shallow_scheme>
+<shallow_scheme pbl="spcam_ml"     >SPCAM    </shallow_scheme>
 
 <!-- Cloud fraction -->
 <cldfrc_freeze_dry             >.true.</cldfrc_freeze_dry>
