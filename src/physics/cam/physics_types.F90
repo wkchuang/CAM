@@ -87,6 +87,25 @@ module physics_types
      real(r8), dimension(:,:,:),allocatable      :: &
           q         ! constituent mixing ratio (kg/kg moist or dry air depending on type)
 
+#if defined(MMF_NN_EMULATOR)
+      real(r8), dimension(:,:,:), allocatable    :: &
+         t_adv,   &
+         u_adv,   &
+         t_phy,   &
+         u_phy
+      
+      real(r8), dimension(:,:,:,:), allocatable  :: &
+         q_adv,   &
+         q_phy
+      
+      real(r8), dimension(:,:), allocatable      :: &
+      tm_ps,   &
+      tm_solin,   &
+      tm_lhf,  &
+      tm_shf,  &
+      tm_coszn
+#endif /* MMF_NN_EMULATOR */
+
      real(r8), dimension(:,:),allocatable        :: &
           pint,    &! interface pressure (Pa)
           pintdry, &! interface pressure dry (Pa)
