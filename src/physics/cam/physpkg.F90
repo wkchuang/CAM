@@ -695,8 +695,7 @@ contains
     ! Initialization of physics package.
     !
     !-----------------------------------------------------------------------
-    ! Test for neural net initialization
-    use pytorch_test,       only: init_neural_net   
+    ! Test for neural net initialization 
     use physics_buffer,     only: physics_buffer_desc, pbuf_initialize, pbuf_get_index
     use physconst,          only: rair, cpair, gravit, stebol, tmelt, &
                                   latvap, latice, rh2o, rhoh2o, pstd, zvir, &
@@ -816,9 +815,6 @@ contains
         call endrun('phys_init: ideal_phys configuration error')
       end if
     end if
-    
-    ! Test for neural network initialization
-    call init_neural_net()
 
     if (initial_run) then
        call phys_inidat(cam_out, pbuf2d)
@@ -970,7 +966,6 @@ contains
     !
     !-----------------------------------------------------------------------
     ! Test for neural net run
-    use pytorch_test,   only: neural_net
     use time_manager,   only: get_nstep
     use cam_diagnostics,only: diag_allocate, diag_physvar_ic
     use check_energy,   only: check_energy_gmean
@@ -1017,8 +1012,6 @@ contains
     !
     call get_met_srf1( cam_in )
 #endif
-    ! Test for neural network run
-    call neural_net()
 
     ! The following initialization depends on the import state (cam_in)
     ! being initialized.  This isn't true when cam_init is called, so need

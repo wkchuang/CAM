@@ -12,7 +12,7 @@
     <desc atm="CAM50[%CCTS1][%CLB][%PORT][%RCO2][%SCAM][%SDYN][%WCSC][%WCTS]"                                                                      >CAM cam5 physics:</desc>
     <desc atm="CAM40[%PORT][%RCO2][%SCAM][%SDYN][%TMOZ][%WX][%WXIE][%WXIED][%WCMD]"                                                                >CAM cam4 physics:</desc>
     <desc atm="CAM30"                                                                                                                              >CAM cam3 physics:</desc>
-    <desc atm="CAM[%ADIAB][%DABIP04][%TJ16][%HS94][%KESSLER][%RCO2][%SPCAMS][%SPCAMCLBS][%SPCAMM][%SPCAMCLBM]"                                     >CAM simplified and non-versioned physics :</desc>
+    <desc atm="CAM[%ADIAB][%DABIP04][%TJ16][%HS94][%KESSLER][%RCO2][%SPCAMS][%SPCAMCLBS][%SPCAMM][%SPCAMSML][%SPCAMCLBM]"                                     >CAM simplified and non-versioned physics :</desc>
 
   <!--
     ===============
@@ -42,6 +42,7 @@
     <desc option="CVBSX"        >CAM-Chem troposphere/stratosphere chem with extended volatility basis set SOA scheme and modal aersols :</desc>
     <desc option="RCO2"         >CAM CO2 ramp: </desc>
     <desc option="SPCAMS"       >CAM super-parameterized CAM one moment SAM microphysics </desc>
+    <desc option="SPCAMSML"     >CAM super-parameterized CAM emulated using ML </desc>
     <desc option="SPCAMCLBS"    >CAM super-parameterized CAM one moment SAM microphysics using CLUBB </desc>
     <desc option="SPCAMM"       >CAM super-parameterized CAM double moment m2005 SAM microphysics </desc>
     <desc option="SPCAMCLBM"    >CAM super-parameterized CAM double moment m2005 SAM microphysics using CLUBB </desc>
@@ -128,6 +129,8 @@
       <value compset="_CAM50%CLB">-clubb_sgs</value>
       <value compset="_(CAM40|CAM50|CAM60).*%SCAM">-dyn eul -scam</value>
       <value compset="CAM%SPCAMS">-rad camrt -chem none -spcam_nx 32 -spcam_ny 1 -spcam_dx 4000 -spcam_dt 20 -phys spcam_sam1mom </value>
+      <!-- For SPCAMSML, -phys will need to be switched to spcam_ml, and radiation should be switched to camrt-->
+      <value compset="CAM%SPCAMSML">-rad rrtmg -chem none -spcam_nx 32 -spcam_ny 1 -spcam_dx 4000 -spcam_dt 20 -phys spcam_sam1mom</value>
       <value compset="CAM%SPCAMCLBS">-rad camrt -chem none -spcam_nx 32 -spcam_ny 1 -spcam_dx 4000 -spcam_dt 20 -phys spcam_sam1mom -spcam_clubb_sgs </value>
       <value compset="CAM%SPCAMM">-rad rrtmg -chem trop_mam3 -spcam_nx 32 -spcam_ny 1 -spcam_dx 4000 -spcam_dt 20 -phys spcam_m2005 </value>
       <value compset="CAM%SPCAMCLBM">-rad rrtmg -chem trop_mam3 -spcam_nx 32 -spcam_ny 1 -spcam_dx 4000 -spcam_dt 20 -phys spcam_m2005 -spcam_clubb_sgs </value>

@@ -272,6 +272,10 @@
     <lname>2000_CAM%SPCAMCLBM_CLM50%SP_CICE%PRES_DOCN%DOM_RTM_SGLC_SWAV</lname>
   </compset>
 
+  <compset>
+    <alias>FSPCAMSML</alias>
+    <lname>2000_CAM%SPCAMSML_CLM50%SP_CICE%PRES_DOCN%DOM_RTM_SGLC_SWAV</lname>
+  </compset>
 
   <!-- cam-chem untested compsets -->
 
