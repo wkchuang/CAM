@@ -65,7 +65,7 @@ module crm_physics
                                  cnst_names(ncnst) = (/'CLDLIQ', 'CLDICE','NUMLIQ','NUMICE'/)
 
    logical           :: use_spcam, prog_modal_aero, do_clubb_sgs
-   logical           :: is_spcam_m2005, is_spcam_sam1mom
+   logical           :: is_spcam_m2005, is_spcam_sam1mom, is_spcam_ml
 
    integer          :: crm_nx_ny
 
@@ -94,6 +94,8 @@ subroutine crm_physics_register()
 
   is_spcam_m2005   = cam_physpkg_is('spcam_m2005')
   is_spcam_sam1mom = cam_physpkg_is('spcam_sam1mom')
+  is_spcam_ml      = cam_physpkg_is('spcam_ml')
+  if (is_spcam_ml) is_spcam_sam1mom = .true.
 
   call phys_getopts( use_spcam_out           = use_spcam)
   call phys_getopts( prog_modal_aero_out     = prog_modal_aero)

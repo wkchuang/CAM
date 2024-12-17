@@ -952,6 +952,12 @@ contains
     ! Initialize the snapshot capability
     call cam_snapshot_init(cam_in, cam_out, pbuf2d, begchunk)
 
+#ifdef MMF_NN_EMULATOR
+    write(iulog,*) 'NN emulator is on'
+#else
+    write(iulog,*) 'NN emulator is off'
+#endif /* MMF_NN_EMULATOR */
+
   end subroutine phys_init
 
   !

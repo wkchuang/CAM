@@ -197,7 +197,8 @@ subroutine phys_ctl_readnl(nlfile)
    call mpi_bcast(cam_take_snapshot_after,     len(cam_take_snapshot_after),  mpi_character, masterprocid, mpicom, ierr)
 
    use_spcam       = (     cam_physpkg_is('spcam_sam1mom') &
-                      .or. cam_physpkg_is('spcam_m2005'))
+                      .or. cam_physpkg_is('spcam_m2005') &
+                      .or. cam_physpkg_is('spcam_ml'))
 
    call cam_ctrl_set_physics_type(cam_physpkg)
 

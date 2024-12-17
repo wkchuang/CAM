@@ -258,7 +258,7 @@ integer :: cldfsnow_idx     = -1
 
 
 integer           :: nmodes
-logical           :: is_spcam_m2005, is_spcam_sam1mom
+logical           :: is_spcam_m2005, is_spcam_sam1mom, is_spcam_ml
 logical           :: prog_modal_aero
 
 contains
@@ -603,6 +603,8 @@ subroutine spcam_register()
 
   is_spcam_m2005   = cam_physpkg_is('spcam_m2005')
   is_spcam_sam1mom = cam_physpkg_is('spcam_sam1mom')
+  is_spcam_ml      = cam_physpkg_is('spcam_ml')
+  if (is_spcam_ml) is_spcam_sam1mom = .true.
 
   if (is_spcam_m2005) then
      call pbuf_add_field('ICSWP',    'physpkg',dtype_r8,(/pcols,pver/), icswp_idx)

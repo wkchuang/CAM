@@ -1631,6 +1631,7 @@
 <gas_wetdep_method>NEU</gas_wetdep_method>
 <gas_wetdep_method  phys="spcam_sam1mom" >MOZ</gas_wetdep_method>
 <gas_wetdep_method  phys="spcam_m2005"   >OFF</gas_wetdep_method>
+<gas_wetdep_method  phys="spcam_ml" >MOZ</gas_wetdep_method>
 
 <!-- dry deposition method for gas-phase species -->
 <drydep_method>xactive_lnd</drydep_method>
@@ -1862,6 +1863,7 @@
 <microp_scheme microphys="mg2"          >MG           </microp_scheme>
 <microp_scheme microphys="spcam_m2005"  >SPCAM_m2005  </microp_scheme>
 <microp_scheme microphys="spcam_sam1mom">SPCAM_sam1mom</microp_scheme>
+<microp_scheme microphys="spcam_ml"     >SPCAM_sam1mom</microp_scheme>
 <microp_scheme microphys="mg3">MG</microp_scheme>
 
 <micro_mg_version     microphys="mg1">    1          </micro_mg_version>
@@ -1936,6 +1938,7 @@
 <macrop_scheme macrophys="clubb_sgs"     >CLUBB_SGS</macrop_scheme>
 <macrop_scheme macrophys="spcam_sam1mom" >SPCAM_sam1mom</macrop_scheme>
 <macrop_scheme macrophys="spcam_m2005"   >SPCAM_m2005</macrop_scheme>
+<macrop_scheme macrophys="spcam_ml"      >SPCAM_sam1mom</macrop_scheme>
 
 <!-- Vertical limit on troposphere cloud physics -->
 
@@ -2031,6 +2034,7 @@
 
 <seasalt_emis_scale  spcam_clubb_sgs="1" phys="spcam_sam1mom"            >1.00D0</seasalt_emis_scale >
 <seasalt_emis_scale  spcam_clubb_sgs="1" phys="spcam_m2005"              >1.00D0</seasalt_emis_scale >
+<seasalt_emis_scale  spcam_clubb_sgs="1" phys="spcam_ml"              >1.00D0</seasalt_emis_scale >
 
 <!-- sub-column switches for physics packages -->
 <use_subcol_microp                  >.false.</use_subcol_microp>
@@ -2085,6 +2089,7 @@
 <eddy_scheme pbl="clubb_sgs"      >CLUBB_SGS      </eddy_scheme>
 <eddy_scheme pbl="spcam_m2005"    >SPCAM_m2005    </eddy_scheme>
 <eddy_scheme pbl="spcam_sam1mom"  >SPCAM_sam1mom  </eddy_scheme>
+<eddy_scheme pbl="spcam_ml"       >SPCAM_sam1mom  </eddy_scheme>
 
 <!-- convection schemes -->
 <deep_scheme                     >ZM       </deep_scheme>
@@ -2093,6 +2098,7 @@
 <deep_scheme pbl="none"          >NONE     </deep_scheme>
 <deep_scheme phys='spcam_sam1mom'>SPCAM    </deep_scheme>
 <deep_scheme phys='spcam_m2005'  >SPCAM    </deep_scheme>
+<deep_scheme phys='spcam_ml'     >SPCAM    </deep_scheme>
 
 <shallow_scheme pbl="none"         >NONE     </shallow_scheme>
 <shallow_scheme pbl="uw"           >UW       </shallow_scheme>
@@ -2102,6 +2108,7 @@
 <shallow_scheme pbl="clubb_sgs"    >CLUBB_SGS</shallow_scheme>
 <shallow_scheme pbl="spcam_m2005"  >SPCAM    </shallow_scheme>
 <shallow_scheme pbl="spcam_sam1mom">SPCAM    </shallow_scheme>
+<shallow_scheme pbl="spcam_ml">     SPCAM    </shallow_scheme>
 
 <!-- Cloud fraction -->
 <cldfrc_freeze_dry             >.true.</cldfrc_freeze_dry>
@@ -2363,6 +2370,8 @@
 <fv_div24del2flag hgrid="0.23x0.31" phys="cam6"         >42</fv_div24del2flag>
 <fv_div24del2flag hgrid="0.47x0.63" phys="cam6"         >42</fv_div24del2flag>
 <fv_div24del2flag hgrid="0.47x0.63" phys="spcam_m2005"  >42</fv_div24del2flag>
+<fv_div24del2flag hgrid="0.23x0.31" phys="spcam_ml"     >42</fv_div24del2flag>
+<fv_div24del2flag hgrid="0.47x0.63" phys="spcam_ml"     >42</fv_div24del2flag>
 
 <fv_nspltvrm                  >1</fv_nspltvrm>
 <fv_nspltvrm hgrid="0.9x1.25" >2</fv_nspltvrm>

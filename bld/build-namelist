@@ -3710,7 +3710,7 @@ if ($offline_drv ne 'stub') {
     }
 }
 
-if ($phys eq 'spcam_sam1mom' or $phys eq 'spcam_m2005') {
+if ($phys eq 'spcam_sam1mom' or $phys eq 'spcam_m2005' or $phys eq 'spcam_ml') {
     add_default($nl, 'iradsw', 'val'=>'1');
     add_default($nl, 'iradlw', 'val'=>'1');
 }
