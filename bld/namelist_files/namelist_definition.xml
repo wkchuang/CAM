@@ -3102,7 +3102,7 @@ Default: 'ZM' unless using 'UNICON', 'SPCAM' or 'pbl=none'
 </entry>
 
 <entry id="microp_scheme" type="char*16" category="conv"
-       group="phys_ctl_nl" valid_values="NONE,RK,MG,SPCAM_m2005,SPCAM_sam1mom" >
+       group="phys_ctl_nl" valid_values="NONE,RK,MG,SPCAM_m2005,SPCAM_sam1mom,SPCAM_ml" >
 Type of microphysics scheme employed.  'RK' for Rasch and Kristjansson
 (1998); 'MG' for Morrison and Gettelman (2008), Gettelman et al (2010)
 two moment scheme for CAM5 and CAM6
@@ -3125,7 +3125,7 @@ Default: set by build-namelist
 </entry>
 
 <entry id="shallow_scheme" type="char*16" category="conv"
-       group="phys_ctl_nl" valid_values="Hack,UW,CLUBB_SGS,UNICON,SPCAM_m2005,SPCAM_sam1mom" >
+       group="phys_ctl_nl" valid_values="Hack,UW,CLUBB_SGS,UNICON,SPCAM_m2005,SPCAM_sam1mom,SPCAM_ml" >
 Type of shallow convection scheme employed.
  'Hack' for Hack shallow convection;
  'UW' for original McCaa UW pbl scheme, modified by Sungsu Park;
@@ -4382,7 +4382,7 @@ Default: 0
 </entry>
 
 <entry id="eddy_scheme" type="char*16" category="pbl"
-       group="phys_ctl_nl" valid_values="HB,diag_TKE,HBR,CLUBB_SGS,SPCAM_sam1mom,SPCAM_m2005" >
+       group="phys_ctl_nl" valid_values="HB,diag_TKE,HBR,CLUBB_SGS,SPCAM_sam1mom,SPCAM_m2005,SPCAM_ml" >
 Type of eddy scheme employed by the vertical diffusion package.  'HB' for
 Holtslag and Boville; 'diag_TKE' for diagnostic tke version of Grenier and
 Bretherton; 'HBR' for Rasch modified version of 'HB'.
@@ -8229,6 +8229,29 @@ Default: 0.0
        group="dyn_fv3_inparm" valid_values="" >
 If TRUE perform temp tendency scaling before send to fv3 dynamics
 Default: FALSE
+</entry>
+
+<!-- ========================================================================================  -->
+<!-- mmf_nn_emulator_nl: -->
+
+<entry id="inputlength" type="integer" category="mmf_nn_emulator"
+       group="mmf_nn_emulator_nl" valid_values="" >
+Length of mmf_nn_emulator input vector
+</entry>
+
+<entry id="outputlength" type="integer" category="mmf_nn_emulator"
+       group="mmf_nn_emulator_nl" valid_values="" >
+Length of mmf_nn_emulator output vector
+</entry>
+
+<entry id="input_rh" type="logical" category="mmf_nn_emulator"
+       group="mmf_nn_emulator_nl" valid_values="" >
+Toggle relative humidity
+</entry>
+
+<entry id="cb_torch_model" type="char*256" category="mmf_nn_emulator"
+       group="mmf_nn_emulator_nl" valid_values="" >
+absolute filepath for a pytorch model file
 </entry>
 
 </namelist_definition>

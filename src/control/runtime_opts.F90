@@ -95,7 +95,9 @@ subroutine read_namelist(nlfilename, single_column, scmlat, scmlon)
    use ionosphere_interface,only: ionosphere_readnl
    use qneg_module,         only: qneg_readnl
    use lunar_tides,         only: lunar_tides_readnl
-
+#ifdef MMF_NN_EMULATOR
+   use mmf_nn_emulator,     only: mmf_nn_emulator_readnl
+#endif
    !---------------------------Arguments-----------------------------------
 
    character(len=*), intent(in) :: nlfilename
@@ -191,6 +193,9 @@ subroutine read_namelist(nlfilename, single_column, scmlat, scmlon)
    call dyn_readnl(nlfilename)
    call ionosphere_readnl(nlfilename)
    call qneg_readnl(nlfilename)
+#ifdef MMF_NN_EMULATOR
+   call mmf_nn_emulator_readnl(nlfilename)
+#endif
 
 end subroutine read_namelist
 
